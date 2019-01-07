@@ -39,10 +39,10 @@
 
 /************ WIFI and MQTT Information (CHANGE THESE FOR YOUR SETUP) ******************/
 const char* ssid = "FRITZ!Box 7490"; //type your WIFI information inside the quotes
-const char* password = "*****";
+const char* password = "**************";
 const char* mqtt_server = "192.168.178.20";
 const char* mqtt_username = "openhabian";
-const char* mqtt_password = "******";
+const char* mqtt_password = "*****";
 const int mqtt_port = 1883;
 
 /**************************** FOR OTA **************************************************/
@@ -68,22 +68,22 @@ String oldeffectString = "solid";
 
 /****************************************FOR Sensors***************************************/
 //PIN of PIR
-#define PIR_PIN D2
+#define PIR_PIN D0
 
 //PIN LDR
-#define LDR_PIN D1
+#define LDR_PIN D2
 
 //PIN Sound sensor
-#define MIC_PIN D6
+#define MIC_PIN D4
 
 //PIN DHT11
-#define TEMP_PIN D0
+#define TEMP_PIN D1
 
 //PIN BUTTON
-#define BUTTON_PIN D3
+#define BUTTON_PIN D7
 
 //PIN BUZZER
-#define BUTTON_LED_PIN D5
+#define BUTTON_LED_PIN D8
 
 //Type temperature sensor
 #define DHTTYPE DHT11   // DHT 11
@@ -107,17 +107,19 @@ bool buttonPressed = false;
 //Number of LEDs
 #define NUM_LEDS 256
 //Pin of WS2812B strip
-#define LED_PIN 13 //D7//2 // D4 = GIPO 2
-#define DATA_PIN 7 //4 //same as LED Pin, but for FastLED
+#define LED_PIN 0 //D7//2 // D4 = GIPO 2
+#define DATA_PIN 3 //4 //same as LED Pin, but for FastLED
 
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = Arduino pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
+/*
+ Parameter 1 = number of pixels in strip
+ Parameter 2 = Arduino pin number (most are valid)
+ Parameter 3 = pixel type flags, add together as needed:
+   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
+*/
 WS2812FX ws2812fx = WS2812FX(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 /****************************************FOR JSON***************************************/
@@ -265,7 +267,6 @@ PubSubClient client(espClient);
 CRGB leds[NUM_LEDS];
 
 /******************************** GLOBALS for fade/flash *******************************/
-
 bool startFade = false;
 bool onbeforeflash = false;
 unsigned long lastLoop = 0;
@@ -284,7 +285,6 @@ byte flashRed = red;
 byte flashGreen = green;
 byte flashBlue = blue;
 byte flashBrightness = brightness;
-
 
 void setup_wifi();
 void callback(char* topic, byte* payload, unsigned int length);
@@ -314,17 +314,13 @@ void FillLEDsFromPaletteColors(uint8_t colorIndex);
 void ChangePalettePeriodically();
 void demoMode();
 void buttonCheck();
-void sendButtonState() ;
+//void sendButtonState() ;
 void gettemperature();
 void motionCheck();
 void ldrCheck() ;
 bool loadConfig();
 bool saveConfig();
-
-
-
-
-
+void sendToMqtt(String path, bool val, const char* destinationTopic);
 
 
 
@@ -457,8 +453,6 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-
-
 /********************************** START RECONNECT*****************************************/
 void reconnect() {
   // Loop until we're reconnected
@@ -473,7 +467,8 @@ void reconnect() {
       delay(500);
       //ws2812fx.setSegment(0, 0, NUM_LEDS, 1, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
       sendState();
-      sendButtonState();
+      sendToMqtt("button", buttonPressed, light_notify_topic);
+      //sendButtonState();
       
 
     } else {
@@ -509,7 +504,6 @@ void loop() {
 
   delay(1);
 
-
   //Check Button
   buttonCheck();
 
@@ -517,8 +511,10 @@ void loop() {
   ldrCheck();
 
   //Check for Motion
-  motionCheck();
-
+  if(!stateOn){
+    motionCheck();
+  }
+  
   //refresh Temperature
   gettemperature();
 
@@ -541,7 +537,6 @@ void loop() {
   }
   yield();
 }
-
 
 /********************************** START CALLBACK*****************************************/
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -757,7 +752,6 @@ void setColor(int inR, int inG, int inB) {
   }
 }
 
-
 /********************************** START SHOW LEDS ***********************************************/
 void showleds() {
   //Serial.println("ShowLeds");
@@ -815,7 +809,6 @@ void showleds() {
 
 
 }
-
 
 void fastLedEffects() {
   if (stateOn) {
@@ -1424,7 +1417,6 @@ void fastLedEffects() {
   }
 }
 
-
 /**************************** START TRANSITION FADER *****************************************/
 // From https://www.arduino.cc/en/Tutorial/ColorCrossfader
 /* BELOW THIS LINE IS THE MATH -- YOU SHOULDN'T NEED TO CHANGE THIS FOR THE BASICS
@@ -1484,7 +1476,6 @@ int calculateVal(int step, int val, int i) {
   return val;
 }
 
-
 /**************************** START STRIPLED PALETTE *****************************************/
 void setupStripedPalette( CRGB A, CRGB AB, CRGB B, CRGB BA) {
   currentPalettestriped = CRGBPalette16(
@@ -1537,7 +1528,6 @@ void Fire2012WithPalette(){
   }
 }
 
-
 /********************************** START ADD GLITTER *********************************************/
 void addGlitter( fract8 chanceOfGlitter){
   if ( random8() < chanceOfGlitter) {
@@ -1545,14 +1535,12 @@ void addGlitter( fract8 chanceOfGlitter){
   }
 }
 
-
 /********************************** START ADD GLITTER COLOR ****************************************/
 void addGlitterColor( fract8 chanceOfGlitter, int red, int green, int blue){
   if ( random8() < chanceOfGlitter) {
     leds[ random16(NUM_LEDS) ] += CRGB(red, green, blue);
   }
 }
-
 
 /********************************Custom Palettes********************************************************/
 //sunrise palette
@@ -1598,7 +1586,7 @@ void sunrise() {
 
 }
 
-/********************************** fill middle effect********************************************************/
+/********************************** mover effect********************************************************/
 
 void mover() {
   yield();
@@ -1606,7 +1594,9 @@ void mover() {
   for (int i = 0; i < NUM_LEDS; i++) {
     yield();
     leds[i] += CHSV(hue, 255, 255);
+    yield();
     leds[(i + 5) % NUM_LEDS] += CHSV(hue + 85, 255, 255);     // We use modulus so that the location is between 0 and NUM_LEDS
+    yield();
     leds[(i + 10) % NUM_LEDS] += CHSV(hue + 170, 255, 255);   // Same here.
     //show_at_max_brightness_for_power();
     showleds();
@@ -1614,13 +1604,14 @@ void mover() {
     yield();
     delay(thisdelaymover);                                         // UGH!!!! A blocking delay. If you want to add controls, they may not work reliably.
   }
-} // mover()
+} 
 
 
 void ChangeMeMover() {                                             // A time (rather than loop) based demo sequencer. This gives us full control over the length of each sequence.
   uint8_t secondHand = (millis() / 1000) % 15;                // IMPORTANT!!! Change '15' to a different value to change duration of the loop.
   static uint8_t lastSecond = 99;                             // Static variable, means it's only defined once. This is our 'debounce' variable.
   if (lastSecond != secondHand) {                             // Debounce to make sure we're not repeating an assignment.
+    yield();
     lastSecond = secondHand;
     switch (secondHand) {
       case  0: thisdelaymover = 20; thisfademover = 240; break;         // You can change values here, one at a time , or altogether.
@@ -1629,11 +1620,9 @@ void ChangeMeMover() {                                             // A time (ra
       case 15: break;
     }
   }
-} // ChangeMe()
+} 
 
 /********************************** fill middle effect********************************************************/
-
-//fill middle
 /*
    effect mode:
    0 = random color,
@@ -1699,6 +1688,7 @@ void fillmiddle(int effectMode) {
   showleds();
 }
 
+/********************************** fill end effect********************************************************/
 /*
    effect mode:
    0 = random color,
@@ -1760,13 +1750,10 @@ void fillEnd(int effectMode) {
 }
 
 /********************************** Sound reactive effect********************************************************/
-
 void soundEffect(int soundMode) {
   /*/soundMode 1 = blink to sound, with black
      soundMode 2 = blink to sound, always on
-
   */
-
   if (digitalRead(MIC_PIN) == 1 && stateOn) {
     fill_solid(leds, NUM_LEDS, CHSV(random8(), 255, 255));
     FastLED.show();
@@ -1787,7 +1774,6 @@ void soundEffect(int soundMode) {
 
     }
   }
-
 }
 
 /********************************** rainbow effects********************************************************/
@@ -1815,7 +1801,6 @@ void rainbow_beatwave() {
 }
 
 /********************************** change Pallete effect********************************************************/
-
 void FillLEDsFromPaletteColors(uint8_t colorIndex) {
 
   for (int i = 0; i < NUM_LEDS; i++) {
@@ -1824,7 +1809,6 @@ void FillLEDsFromPaletteColors(uint8_t colorIndex) {
   }
 
 } // FillLEDsFromPaletteColors()
-
 
 
 void ChangePalettePeriodically() {
@@ -1874,8 +1858,6 @@ void ChangePalettePeriodically() {
 
 }
 
-
-
 /********************************** START DEMO mode (playAll) ***********************************************/
 void demoMode() {
 
@@ -1897,7 +1879,8 @@ void buttonCheck() {
   //check if button was pressed
   if (digitalRead(BUTTON_PIN) == LOW) {
     buttonPressed = true;
-    sendButtonState();
+    //sendButtonState();
+    sendToMqtt("button", buttonPressed, light_notify_topic);
   }
 
   //Wait and reset Button State when button was pressed
@@ -1922,12 +1905,14 @@ void buttonCheck() {
       Serial.println("STOP disabeld");
 
       //send buttonstate
-      sendButtonState();
+      //sendButtonState();
+      sendToMqtt("button", buttonPressed, light_notify_topic);
       last_change_button = now;
     }
   }
 }
 
+/*
 void sendButtonState() {
   StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
@@ -1942,9 +1927,26 @@ void sendButtonState() {
 
   client.publish(light_notify_topic, buffer, true);
   Serial.println("Button state sent");
+}*/
+
+/**********************************Send to MQTT ***********************************************/
+void sendToMqtt(String path, bool val, const char* destinationTopic){
+   StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+  //button state
+  Serial.print("Sending Mesage: ");
+  Serial.print(path);
+  Serial.print(" -> ");
+  Serial.println(val);
+  root[path] = val;
+
+  char buffer[root.measureLength() + 1];
+  root.printTo(buffer, sizeof(buffer));
+  yield();
+
+  client.publish(destinationTopic, buffer, true);
+  Serial.println("Message sent");
 }
-
-
 
 /**********************************Temperature check ***********************************************/
 void gettemperature() {
@@ -1988,19 +1990,26 @@ void gettemperature() {
 
   }
 }
-/********************************** PIR motion check ***********************************************/
 
+/********************************** PIR motion check ***********************************************/
 void motionCheck() {
   //Serial.println("motionCheck");
   DEBUG_MSG("motionCheck\n");
   //check for motion
   motionState = digitalRead(PIR_PIN);
   //change motionOn if autoMode is on and it's dark or motionOn is true
-  if (autoMode && (lightState == 1 || motionOn)) {
+  if (autoMode && (lightState == 1 ) || motionOn) {
     if (motionState == 1  && !buttonPressed) {
+      if(!motionOn){
       motionOn = true;
+      sendToMqtt("motion", motionOn, light_set_topic);
+      }
+
     } else {
+      if(motionOn){
       motionOn = false;
+       sendToMqtt("motion", motionOn, light_set_topic);
+       }
     }
   }
   yield();
@@ -2016,7 +2025,7 @@ void ldrCheck() {
 
 }
 
-
+/********************************** load from Config ***********************************************/
 bool loadConfig() {
   File configFile = SPIFFS.open("/config.json", "r");
   if (!configFile) {
@@ -2078,6 +2087,7 @@ bool loadConfig() {
   return true;
 }
 
+/********************************** write to Config***********************************************/
 bool saveConfig() {
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
@@ -2108,10 +2118,3 @@ bool saveConfig() {
   json.printTo(configFile);
   return true;
 }
-
-
-
-
-
-
-  
