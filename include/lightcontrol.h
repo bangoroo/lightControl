@@ -16,8 +16,8 @@
 #include <DHT_U.h>
 
 //Timer in min (1000ms * 60s * min)
-//Durration of Effect in effect All (5s)
-#define TIMER_MS_AUTO 1000*5
+//Durration of Effect in effect All (15s)
+#define TIMER_MS_AUTO 1000*15
 //duration for refresh Temperature (10min)
 #define TIMER_MS_TEMP 1000*60*10
 //duration for button reset (5min)
@@ -70,7 +70,7 @@ WS2812FX ws2812fx = WS2812FX(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 /************ WIFI and MQTT Information (CHANGE THESE FOR YOUR SETUP) ******************/
 const char* ssid = "FRITZ!Box 7490"; //type your WIFI information inside the quotes
 const char* password = "34259275001936793146";
-const char* mqtt_server = "192.168.178.20";
+const char* mqtt_server =  "openhabianpi.local";
 const char* mqtt_username = "openhabian";
 const char* mqtt_password = "nils";
 const int mqtt_port = 1883;
@@ -101,7 +101,7 @@ DHT dht(TEMP_PIN, DHTTYPE);
 float humidity = 0;
 float temperature = 0;
 float heatIndex = 0;
-
+ 
 //state of PIR
 int motionState = 0; //0 = no motion, 1 = motion
 
@@ -204,3 +204,4 @@ void ldrCheck() ;
 bool loadConfig();
 bool saveConfig();
 void sendToMqtt(String path, bool val, const char* destinationTopic);
+void sendToMqtt(DynamicJsonDocument jsonDoc, const char* destinationTopic);

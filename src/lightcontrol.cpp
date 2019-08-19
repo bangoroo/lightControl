@@ -210,7 +210,7 @@ void setup() {
   ws2812fx.start();
 
   Serial.println("Done");
-  //loadSettingsFromEEPROM();
+  //loadSettings
   if (!SPIFFS.begin()) {
     Serial.println("Failed to mount file system");
     return;
@@ -252,12 +252,15 @@ void setup_wifi() {
 /********************************** START RECONNECT*****************************************/
 void reconnect() {
   // Loop until we're reconnected
+  byte trys = 0;
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect(SENSORNAME, mqtt_username, mqtt_password)) {
       Serial.println("connected");
+      trys = 0;
       client.subscribe(light_set_topic);
+      
 
       ESP.wdtFeed();
       delay(500);
@@ -265,6 +268,7 @@ void reconnect() {
       sendState();
       sendToMqtt("button", buttonPressed, light_notify_topic);
       //sendButtonState();
+      gettemperature();
       
 
     } else {
@@ -273,6 +277,15 @@ void reconnect() {
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       yield();
+
+      trys +=1;
+      Serial.print("Trys: ");
+      Serial.println(trys);
+      if(trys >=10){
+        Serial.println("Reach maximum of trys. Restarting ESP...");
+        ESP.restart();
+      }
+
       delay(5000);
     }
   }
@@ -336,6 +349,7 @@ void loop() {
 
 /********************************** START CALLBACK*****************************************/
 void callback(char* topic, byte* payload, unsigned int length) {
+  yield();
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -357,12 +371,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     realRed = map(red, 0, 255, 0, brightness);
     realGreen = map(green, 0, 255, 0, brightness);
     realBlue = map(blue, 0, 255, 0, brightness);
-    /*Serial.println(realRed);
-      Serial.println(realGreen);
-      Serial.println(realBlue);
-      Serial.print("        ");
-      Serial.println(brightness);*/
-
   }
   else {
 
@@ -382,65 +390,66 @@ bool processJson(char* message) {
   //Serial.print("ProcessJSON...");
   DEBUG_MSG("ProcessJSON...");
 
-  //StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
-  DynamicJsonBuffer jsonBuffer(BUFFER_SIZE);
+  DynamicJsonDocument jsonDoc(BUFFER_SIZE);
 
-  JsonObject& root = jsonBuffer.parseObject(message);
+  //JsonObject& root = jsonBuffer.parseObject(message);
+  DeserializationError error = deserializeJson(jsonDoc, message);
 
-  if (!root.success()) {
+  //if (!root.success()) {
+    if(error){
     Serial.println("parseObject() failed");
     return false;
   }
 
   //read power state
-  if (root.containsKey("state")) {
-    if (strcmp(root["state"], on_cmd) == 0) {
+  if (jsonDoc.containsKey("state")) {
+    if (strcmp(jsonDoc["state"], on_cmd) == 0) {
       stateOn = true;
-    } else if (strcmp(root["state"], off_cmd) == 0) {
+    } else if (strcmp(jsonDoc["state"], off_cmd) == 0) {
       stateOn = false;
       onbeforeflash = false;
     }
   }
   //read brightness
-  if (root.containsKey("brightness")) {
-    brightness = root["brightness"];
+  if (jsonDoc.containsKey("brightness")) {
+    brightness = jsonDoc["brightness"];
     //brightness = brightness*2.55;
     brightness = map(brightness, 0, 100, 0, 255);
     Serial.print("Set brightness: ");
     Serial.println(brightness);
   }
   //read effect
-  if (root.containsKey("effect")) {
-    effect = root["effect"];
+  if (jsonDoc.containsKey("effect")) {
+    effect = jsonDoc["effect"];
     effectString = effect;
     oldeffectString = effect;
   }
   //read color
-  if (root.containsKey("color")) {
-    red = root["color"]["r"];
-    green = root["color"]["g"];
-    blue = root["color"]["b"];
+  if (jsonDoc.containsKey("color")) {
+    red = jsonDoc["color"]["r"];
+    green = jsonDoc["color"]["g"];
+    blue = jsonDoc["color"]["b"];
     colorChanged = true;
     //setColor(red, green, blue);
   }
   //read speed
-  if (root.containsKey("transition")) {
-    transitionTime = root["transition"];
+  if (jsonDoc.containsKey("transition")) {
+    transitionTime = jsonDoc["transition"];
     transitionTime = transitionTime * 10;
   }
   else if ( effectString == "static") {
     transitionTime = 0;
   }
   //read auto mode
-  if (root.containsKey("auto")) {
-    if (strcmp(root["auto"], on_cmd) == 0) {
+  if (jsonDoc.containsKey("auto")) {
+    if (strcmp(jsonDoc["auto"], on_cmd) == 0) {
       autoMode = true;
-    } else if (strcmp(root["auto"], off_cmd) == 0) {
+    } else if (strcmp(jsonDoc["auto"], off_cmd) == 0) {
       autoMode = false;
     }
   }
-  if (root.containsKey("extLDR")){
-    extLDR = root["extLDR"];
+  if (jsonDoc.containsKey("extLDR")){
+    extLDR = jsonDoc["extLDR"];
   }
   //Serial.println("Done");
   DEBUG_MSG("Done\n");
@@ -455,7 +464,7 @@ bool processJson(char* message) {
   return true;
 }
 
-/********************************** START SEND STATE*****************************************/
+/********************************** START SEND STATE*****************************************
 void sendState() {
   //Serial.print("SendState...");
   DEBUG_MSG("SendState");
@@ -481,6 +490,21 @@ void sendState() {
   client.publish(light_state_topic, buffer, true);
  // Serial.println("Done");
   DEBUG_MSG("Done.\n");
+
+}*/
+void sendState(){
+  DynamicJsonDocument jsonDoc(BUFFER_SIZE);
+  jsonDoc["state"] = (stateOn) ? on_cmd : off_cmd;
+  JsonObject color = jsonDoc.createNestedObject("color");
+  color["r"] = red;
+  color["g"] = green;
+  color["b"] = blue;
+
+  yield();
+  jsonDoc["brightness"] = map(brightness, 0 , 255, 0, 100);
+  jsonDoc["effect"] = effectString.c_str();
+
+  sendToMqtt(jsonDoc, light_state_topic);
 
 }
 
@@ -569,8 +593,14 @@ void showleds() {
 
     if ((motionOn || stateOn) && !ws2812fx.isRunning()) {
       //ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
+      //if(!motionOn){
       ws2812fx.start();
       Serial.println("WS2812FX Start");
+      //}else{
+        //fadeLightBy(leds,NUM_LEDS, 20);
+        //FastLED.show();
+      //}
+      
       
 
     } else if ((!stateOn && !motionOn) && ws2812fx.isRunning()) {
@@ -633,7 +663,7 @@ void fastLedEffects() {
     if (effectString == "rainbow beatwave") {
       FastLEDmode = true;
       transitionTime = 1000;
-      //call fill midddle
+      //call rainbow_beatwave
       rainbow_beatwave();
       EVERY_N_MILLISECONDS(100) {
         uint8_t maxChanges = 24;
@@ -689,7 +719,7 @@ void fastLedEffects() {
     //EFFECT rainbow beat
     if (effectString == "rainbow beat") {
       FastLEDmode = true;
-      //call fill midddle
+      //call rainbow beat
       rainbow_beat();
     }
 
@@ -737,16 +767,12 @@ void fastLedEffects() {
     //EFFECT sound reactive
     if (effectString == "Sound reactive 1") {
       FastLEDmode = true;
-      //set speed to 80 %
-      //transitionTime = 800;
       //call soundeffect
       soundEffect(1);
     }
 
     if (effectString == "Sound reactive 2") {
       FastLEDmode = true;
-      //set speed to 80 %
-      //transitionTime = 800;
       //call soundeffect
       soundEffect(2);
     }
@@ -1560,9 +1586,11 @@ void soundEffect(int soundMode) {
     FastLED.show();
     //showleds();
 
-    while (digitalRead(MIC_PIN) == 1) {
+    while (digitalRead(MIC_PIN) == 1 && stateOn) {
       //wait...
       delay(2);
+      yield();
+      
     }
 
     // delay(5);
@@ -1732,21 +1760,36 @@ void sendButtonState() {
 
 /**********************************Send to MQTT ***********************************************/
 void sendToMqtt(String path, bool val, const char* destinationTopic){
-   StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
+  // StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
+  //JsonObject& root = jsonBuffer.createObject();
+  StaticJsonDocument<BUFFER_SIZE> jsonDoc;
   //button state
   Serial.print("Sending Mesage: ");
   Serial.print(path);
   Serial.print(" -> ");
   Serial.println(val);
-  root[path] = val;
+  //root[path] = val;
+  jsonDoc[path] = val;
 
-  char buffer[root.measureLength() + 1];
-  root.printTo(buffer, sizeof(buffer));
+
+  //char buffer[root.measureLength() + 1];
+  //root.printTo(buffer, sizeof(buffer));
+  char buffer[BUFFER_SIZE];
+  serializeJson(jsonDoc, buffer);
   yield();
 
   client.publish(destinationTopic, buffer, true);
+  yield();
   Serial.println("Message sent");
+}
+void sendToMqtt(DynamicJsonDocument jsonDoc, const char* destinationTopic){
+   Serial.print("Sending Mesage: ");
+   serializeJson(jsonDoc, Serial);
+   yield();
+   char buffer[BUFFER_SIZE];
+   serializeJson(jsonDoc, buffer);
+   yield();
+   client.publish(destinationTopic, buffer,true);
 }
 
 /**********************************Temperature check ***********************************************/
@@ -1772,19 +1815,20 @@ void gettemperature() {
     //Serial.println("Send DHT Data...");
     DEBUG_MSG("Send DHT Data...");
     //send informations
-    StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
+    DynamicJsonDocument jsonDoc(BUFFER_SIZE);
 
-    JsonObject& root = jsonBuffer.createObject();
+    //JsonObject& root = jsonBuffer.createObject();
 
     //temp & humidity
-    root["temperature"] = temperature;
-    root["humidity"] = humidity;
-    root["heatIndex"] = heatIndex;
+    jsonDoc["temperature"] = temperature;
+    jsonDoc["humidity"] = humidity;
+    jsonDoc["heatIndex"] = heatIndex;
 
-    char buffer[root.measureLength() + 1];
-    root.printTo(buffer, sizeof(buffer));
+    //char buffer[root.measureLength() + 1];
+    //root.printTo(buffer, sizeof(buffer));
 
-    client.publish(temp_state_topic, buffer, true);
+    //client.publish(temp_state_topic, buffer, true);
+    sendToMqtt(jsonDoc, temp_state_topic);
     //Serial.println("Temperatur gesendet");
     DEBUG_MSG("Done\n");
     last_change_temp = now;
@@ -1799,7 +1843,7 @@ void motionCheck() {
   //check for motion
   motionState = digitalRead(PIR_PIN);
   //change motionOn if autoMode is on and it's dark or motionOn is true
-  if (autoMode && (lightState == 1 ) || motionOn) {
+  if ((autoMode && (lightState == 1 )) || motionOn) {
     if (motionState == 1  && !buttonPressed) {
       if(!motionOn){
       motionOn = true;
@@ -1848,14 +1892,20 @@ bool loadConfig() {
   // use configFile.readString instead.
   configFile.readBytes(buf.get(), size);
 
+/* 
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& json = jsonBuffer.parseObject(buf.get());
+*/
+StaticJsonDocument<256> json;
+DeserializationError error = deserializeJson(json, buf.get());
 
-  if (!json.success()) {
+ // if (!json.success()) {
+   if(error){
     Serial.println("Failed to parse config file");
     return false;
   }
  
+
   Serial.println("SPIFFS: ");
   Serial.print("stateOn: ");
   stateOn = json["stateOn"];
@@ -1891,14 +1941,17 @@ bool loadConfig() {
   Serial.print("extLDR: ");
   extLDR= json["extLDR"];
   Serial.println(extLDR);
+  serializeJson(json, Serial);
   
   return true;
 }
 
 /********************************** write to Config***********************************************/
 bool saveConfig() {
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& json = jsonBuffer.createObject();
+  //StaticJsonBuffer<200> jsonBuffer;
+  StaticJsonDocument<256> json;
+  //JsonObject& json = jsonBuffer.createObject();
+ 
   json["stateOn"] = stateOn;
   json["motionOn"] = motionOn;
   //effectsave = effectString
@@ -1926,6 +1979,7 @@ bool saveConfig() {
     return false;
   }
 
-  json.printTo(configFile);
+  //json.printTo(configFile);
+  serializeJsonPretty(json, configFile);
   return true;
 }
