@@ -286,7 +286,7 @@ void reconnect() {
         ESP.restart();
       }
 
-      delay(5000);
+      delay(5000); 
     }
   }
 }

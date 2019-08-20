@@ -68,11 +68,11 @@
 WS2812FX ws2812fx = WS2812FX(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 /************ WIFI and MQTT Information (CHANGE THESE FOR YOUR SETUP) ******************/
-const char* ssid = "FRITZ!Box 7490"; //type your WIFI information inside the quotes
-const char* password = "34259275001936793146";
+const char* ssid = "YOUR_SSID"; //type your WIFI information inside the quotes
+const char* password = "********";
 const char* mqtt_server =  "openhabianpi.local";
 const char* mqtt_username = "openhabian";
-const char* mqtt_password = "nils";
+const char* mqtt_password = "*****";
 const int mqtt_port = 1883;
 
 /**************************** FOR OTA **************************************************/
