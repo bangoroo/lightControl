@@ -15,6 +15,7 @@
 #include <DHT.h>
 #include <DHT_U.h>
 
+//Timer
 //Timer in min (1000ms * 60s * min)
 //Durration of Effect in effect All (15s)
 #define TIMER_MS_AUTO 1000*15
