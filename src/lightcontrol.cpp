@@ -832,6 +832,7 @@ void fastLedEffects() {
       for (int i = 0; i < NUM_LEDS; i++) {
         // Set the i'th led to red
         leds[i] = CHSV(hue++, 255, 255);
+        yield();
         // Show the leds
         showleds();
         // now that we've shown the leds, reset the i'th led to black
@@ -840,10 +841,13 @@ void fastLedEffects() {
         yield();
         // Wait a little bit before we loop around and do it again
         delay(10);
+        client.loop();
       }
+      
       for (int i = (NUM_LEDS) - 1; i >= 0; i--) {
         // Set the i'th led to red
         leds[i] = CHSV(hue++, 255, 255);
+        yield();
         // Show the leds
         showleds();
         // now that we've shown the leds, reset the i'th led to black
@@ -852,7 +856,9 @@ void fastLedEffects() {
         yield();
         // Wait a little bit before we loop around and do it again
         delay(10);
+        client.loop();
       }
+      yield();
     }
 
 
@@ -1430,6 +1436,7 @@ void mover() {
     fadeToBlackBy(leds, NUM_LEDS, thisfademover);                  // Low values = slower fade.
     yield();
     delay(thisdelaymover);                                         // UGH!!!! A blocking delay. If you want to add controls, they may not work reliably.
+    client.loop();
   }
 } 
 
