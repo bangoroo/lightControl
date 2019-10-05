@@ -1,6 +1,6 @@
 
 #include "lightcontrol.h"
-//#include <ArduinoOTA.h>
+
 
 /********************************** GLOBALS for EFFECTS ******************************/
 //Sunrise
@@ -11,8 +11,8 @@ uint8_t heatIndexled = 0; // start out at 0
 bool resetSunrise = true;
 
 //fill middle, fillEnd
-unsigned int/* uint16_t*/ help_index_1 = (NUM_LEDS - 1) / 2;
-unsigned int/* uint16_t*/ help_index_2 = NUM_LEDS - 1 ;
+unsigned int help_index_1 = (NUM_LEDS - 1) / 2;
+unsigned int help_index_2 = NUM_LEDS - 1 ;
 
 //mover
 u_int thisdelaymover = 500;      // A delay value for the sequence(s).
@@ -24,7 +24,6 @@ uint8_t deltahue = 10;
 
 //CANDYCANE
 CRGBPalette16 currentPalettestriped; //for Candy Cane
-
 CRGBPalette16 gPal; //for fire
 
 //NOISE
@@ -166,13 +165,13 @@ void setup() {
   //Serial.println("Client ready");
   DEBUG_MSG("Client ready\n");
 
-  /* //OTA SETUP
+   //OTA SETUP
     ArduinoOTA.setPort(OTAport);
     // Hostname defaults to esp8266-[ChipID]
     ArduinoOTA.setHostname(SENSORNAME);
 
     // No authentication by default
-    ArduinoOTA.setPassword(OTApassword);
+   // ArduinoOTA.setPassword(OTApassword);
 
     ArduinoOTA.onStart([]() {
      Serial.println("Starting");
@@ -191,7 +190,7 @@ void setup() {
      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
      else if (error == OTA_END_ERROR) Serial.println("End Failed");
     });
-    ArduinoOTA.begin();*/
+    ArduinoOTA.begin();
 
   Serial.println("Ready");
   Serial.print("IP Address: ");
@@ -309,7 +308,7 @@ void loop() {
   ESP.wdtFeed();
   client.loop();
 
-  //ArduinoOTA.handle();
+  ArduinoOTA.handle();
 
   delay(1);
 

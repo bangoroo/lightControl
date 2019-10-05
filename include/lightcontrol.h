@@ -5,6 +5,7 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 
 //LED library
 #include <WS2812FX.h>
@@ -79,7 +80,7 @@ const int mqtt_port = 1883;
 /**************************** FOR OTA **************************************************/
 #define SENSORNAME "LEDControl" //change this to whatever you want to call your device
 //#define OTApassword "OTA" //the password you will need to enter to upload remotely via the ArduinoIDE
-//int OTAport = 8266;
+int OTAport = 8266;
 
 /************* MQTT TOPICS (change these topics as you wish)  **************************/
 const char* light_state_topic = "home/FF_Bedroom_LED_1";
