@@ -523,7 +523,7 @@ void selectMode() {
       effectString = "";
       resetSunrise = true;//reset Sunrise see also 04_effects /EFFECT SUNRISE
       Serial.print("MODE: ");
-      Serial.println(ws2812fx.getModeName(ws2812fx.getMode()));
+      Serial.println(ws2812fx.getModeName(i));
       FastLEDmode = false;
     }
     yield();
@@ -1898,14 +1898,14 @@ bool loadConfig() {
   // use configFile.readString instead.
   configFile.readBytes(buf.get(), size);
 
-/* 
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& json = jsonBuffer.parseObject(buf.get());
-*/
-StaticJsonDocument<256> json;
-DeserializationError error = deserializeJson(json, buf.get());
+  /* 
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& json = jsonBuffer.parseObject(buf.get());
+  */
+  StaticJsonDocument<256> json;
+  DeserializationError error = deserializeJson(json, buf.get());
 
- // if (!json.success()) {
+  // if (!json.success()) {
    if(error){
     Serial.println("Failed to parse config file");
     return false;
