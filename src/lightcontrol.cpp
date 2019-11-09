@@ -599,13 +599,20 @@ void showleds() {
 
     }
     if(motionOn && !stateOn){
-        for(int i = 0; i<NUM_LEDS/2+1;i++){
+        do
+        {
+           for(int i = 0; i<NUM_LEDS/2+1;i++){
           leds[NUM_LEDS/2-i] = CRGB::GreenYellow;
           leds[NUM_LEDS/2+i] = colorArray[0];
           FastLED.show();
-          delay(100);
+          delay(10);
           client.loop();
+          motionCheck();
          }
+        } while (motionOn);
+             
+         
+         
     }
  
 
@@ -643,7 +650,7 @@ void showleds() {
                 leds[NUM_LEDS-x].nscale8(100);
                 leds[x].nscale8(100);
                 FastLED.show();
-                client.loop();
+                //client.loop();
             }
          // }
           delay(10);
