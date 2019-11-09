@@ -576,38 +576,38 @@ void setColor(int inR, int inG, int inB) {
 
 /********************************** START SHOW LEDS ***********************************************/
 void showleds() {
-  //Serial.println("ShowLeds");
+  
   DEBUG_MSG("showLeds\n");
   //Update Segment
   // parameters: index, start, stop, mode, color, speed, reverse
   ESP.wdtFeed();
-  if (!FastLEDmode) {
-    //Serial.println("WS2812FX set Segment");
+  if (!FastLEDmode) {  
+
+    //Turn leds on if stateOn = true and ws2812fx is not running already
+    if (stateOn && !ws2812fx.isRunning()) {
     DEBUG_MSG("WS2812FX setSegment\n");
     ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
 
-    // Serial.println("set Brightness");
-    //set Brightness
-    ws2812fx.setBrightness(brightness);
-
-    if ((motionOn || stateOn) && !ws2812fx.isRunning()) {
-      //ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
-      //if(!motionOn){
-      ws2812fx.start();
-      Serial.println("WS2812FX Start");
-      //}else{
-        //fadeLightBy(leds,NUM_LEDS, 20);
-        //FastLED.show();
-      //}
+    ws2812fx.start();
+    Serial.println("WS2812FX Start");  
       
-      
-
     } else if ((!stateOn && !motionOn) && ws2812fx.isRunning()) {
       //ws2812fx.setColor(0x000000);
       // ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
       ws2812fx.stop();
       Serial.println("WS2812FX Stop");
+
     }
+    if(motionOn && !stateOn){
+        for(int i = 0; i<NUM_LEDS/2+1;i++){
+          leds[NUM_LEDS/2-i] = CRGB::GreenYellow;
+          leds[NUM_LEDS/2+i] = colorArray[0];
+          FastLED.show();
+          delay(100);
+          client.loop();
+         }
+    }
+ 
 
 
   } else if (FastLEDmode && stateOn) {
@@ -631,11 +631,25 @@ void showleds() {
     FastLEDmode = false;
     help_index_1 = (NUM_LEDS - 1) / 2;
     help_index_2 = NUM_LEDS - 1 ;
-    FastLED.clear();
+    //FastLED.clear();
     FastLED.show();
   }
 
+   if(!motionOn && !stateOn){
+         for(int i = 0; i<NUM_LEDS/2+10;i++ ){
 
+         // if(i>10){
+            for(int x =i-5; x<i; x++){
+                leds[NUM_LEDS-x].nscale8(100);
+                leds[x].nscale8(100);
+                FastLED.show();
+                client.loop();
+            }
+         // }
+          delay(10);
+
+         }
+    }
 
 }
 
@@ -1719,7 +1733,7 @@ void buttonCheck() {
   }
 
   //Wait and reset Button State when button was pressed
-  if (buttonPressed && !motionOn) {                                     //muss geaendert werden, da untergeordnetes while sinnlos!
+  if (buttonPressed && !motionOn) {                                    
     now = millis();
     //turn on LED
     digitalWrite(BUTTON_LED_PIN, HIGH);
