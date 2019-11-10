@@ -589,7 +589,7 @@ void showleds() {
       ws2812fx.start();
       Serial.println("WS2812FX Start");  
       
-    } else if ((!stateOn && !motionOn) && ws2812fx.isRunning()) {
+    } else if (!stateOn &&  ws2812fx.isRunning()) {
       //ws2812fx.setColor(0x000000);
       // ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
       ws2812fx.stop();
@@ -597,8 +597,7 @@ void showleds() {
     }
 
     if(motionOn && !stateOn){
-        do
-        {
+        
            for(int i = 0; i<NUM_LEDS/2+1;i++){
               leds[NUM_LEDS/2-i] =  colorArray[0];
               leds[NUM_LEDS/2+i] = colorArray[0];
@@ -609,17 +608,23 @@ void showleds() {
               
             }
             Serial.println("motion On");
-        } while (motionOn);     
+           
     }
 
     if(!motionOn && !stateOn){
        for(int i = 0; i<NUM_LEDS/2+10;i++ ){
-          if(i>15){
-            for(int x =i-15; x<i; x++){
+          if(i>=5){
+            for(int x =i-5; x<i; x++){
+              leds[NUM_LEDS-x].nscale8(50);
+              leds[x].nscale8(50);
+              FastLED.show();
+              
+            }
+          }else{
+            for(int x =0; x<5;x++){
               leds[NUM_LEDS-x].nscale8(150);
               leds[x].nscale8(150);
               FastLED.show();
-              
             }
           }
           
