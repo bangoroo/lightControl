@@ -576,47 +576,61 @@ void setColor(int inR, int inG, int inB) {
 
 /********************************** START SHOW LEDS ***********************************************/
 void showleds() {
-  
   DEBUG_MSG("showLeds\n");
-  //Update Segment
-  // parameters: index, start, stop, mode, color, speed, reverse
   ESP.wdtFeed();
-  if (!FastLEDmode) {  
 
+  if (!FastLEDmode) {  
     //Turn leds on if stateOn = true and ws2812fx is not running already
     if (stateOn && !ws2812fx.isRunning()) {
-    DEBUG_MSG("WS2812FX setSegment\n");
-    ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
-
-    ws2812fx.start();
-    Serial.println("WS2812FX Start");  
+      DEBUG_MSG("WS2812FX setSegment\n");
+      //Update Segment
+      // parameters: index, start, stop, mode, color, speed, reverse
+      ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
+      ws2812fx.start();
+      Serial.println("WS2812FX Start");  
       
     } else if ((!stateOn && !motionOn) && ws2812fx.isRunning()) {
       //ws2812fx.setColor(0x000000);
       // ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
       ws2812fx.stop();
       Serial.println("WS2812FX Stop");
-
     }
+
     if(motionOn && !stateOn){
         do
         {
            for(int i = 0; i<NUM_LEDS/2+1;i++){
-          leds[NUM_LEDS/2-i] = CRGB::GreenYellow;
-          leds[NUM_LEDS/2+i] = colorArray[0];
-          FastLED.show();
+              leds[NUM_LEDS/2-i] =  colorArray[0];
+              leds[NUM_LEDS/2+i] = colorArray[0];
+              FastLED.show();
+              delay(10);
+              client.loop();
+              motionCheck();
+              
+            }
+            Serial.println("motion On");
+        } while (motionOn);     
+    }
+
+    if(!motionOn && !stateOn){
+       for(int i = 0; i<NUM_LEDS/2+10;i++ ){
+          if(i>15){
+            for(int x =i-15; x<i; x++){
+              leds[NUM_LEDS-x].nscale8(150);
+              leds[x].nscale8(150);
+              FastLED.show();
+              
+            }
+          }
+          
           delay(10);
           client.loop();
-          motionCheck();
          }
-        } while (motionOn);
-             
          
          
+         Serial.println("motion OFF");
     }
  
-
-
   } else if (FastLEDmode && stateOn) {
    // Serial.println("FastLED show");
    DEBUG_MSG("FastLED show\n");
@@ -642,21 +656,6 @@ void showleds() {
     FastLED.show();
   }
 
-   if(!motionOn && !stateOn){
-         for(int i = 0; i<NUM_LEDS/2+10;i++ ){
-
-         // if(i>10){
-            for(int x =i-5; x<i; x++){
-                leds[NUM_LEDS-x].nscale8(100);
-                leds[x].nscale8(100);
-                FastLED.show();
-                //client.loop();
-            }
-         // }
-          delay(10);
-
-         }
-    }
 
 }
 
