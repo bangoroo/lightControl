@@ -639,10 +639,7 @@ void showleds()
     //Update Segment
     // parameters: index, start, stop, mode, color[], speed, reverse
     ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - NUM_LEDS
-
-    //update brightness
-    ws2812fx.setBrightness(brightness);
-    
+   
     //Turn leds on if stateOn = true and ws2812fx is not running already
     if (stateOn && !ws2812fx.isRunning())
     {
@@ -655,8 +652,13 @@ void showleds()
     {
       ws2812fx.stop();
       DEBUG_MSG("WS2812fx stopped\n");
+    } 
+    else if(stateOn)
+    {
+      //update brightness
+      ws2812fx.setBrightness(brightness);
     }
-
+    
     //motion activated light on
     if (motionOn && !stateOn && !alreadyON)
     {
@@ -739,7 +741,7 @@ void showleds()
     }
   }
   //FastLED effect is selectet and leds turn off
-  else if (FastLEDmode && !stateOn)
+  else if (FastLEDmode && !stateOn && !alreadyON)
   {
     DEBUG_MSG("FastLED off\n");
     FastLEDmode = false;
