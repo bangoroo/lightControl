@@ -1,7 +1,6 @@
 
 #include "lightcontrol.h"
 
-
 /********************************** GLOBALS for EFFECTS ******************************/
 //Sunrise
 // total sunrise length, in minutes
@@ -12,69 +11,71 @@ bool resetSunrise = true;
 
 //fill middle, fillEnd
 unsigned int help_index_1 = (NUM_LEDS - 1) / 2;
-unsigned int help_index_2 = NUM_LEDS - 1 ;
+unsigned int help_index_2 = NUM_LEDS - 1;
 
 //mover
-u_int thisdelaymover = 500;      // A delay value for the sequence(s).
-u_int  thisfademover = 192;
+u_int thisdelaymover = 500; // A delay value for the sequence(s).
+u_int thisfademover = 192;
 
 //RAINBOW
-uint8_t thishue = 0;               // Starting hue value.
+uint8_t thishue = 0; // Starting hue value.
 uint8_t deltahue = 10;
 
 //CANDYCANE
 CRGBPalette16 currentPalettestriped; //for Candy Cane
-CRGBPalette16 gPal; //for fire
+CRGBPalette16 gPal;                  //for fire
 
 //NOISE
-static uint16_t dist;         // A random number for our noise generator.
-uint16_t scale = 30;          // Wouldn't recommend changing this on the fly, or the animation will be really blocky.
-uint8_t maxChanges = 48;      // Value for blending between palettes.
+static uint16_t dist;    // A random number for our noise generator.
+uint16_t scale = 30;     // Wouldn't recommend changing this on the fly, or the animation will be really blocky.
+uint8_t maxChanges = 48; // Value for blending between palettes.
 CRGBPalette16 targetPalette(OceanColors_p);
 CRGBPalette16 currentPalette(CRGB::Black);
-TBlendType    currentBlending;                                // NOBLEND or LINEARBLEND
+TBlendType currentBlending; // NOBLEND or LINEARBLEND
 
 //TWINKLE
-#define DENSITY     80
+#define DENSITY 80
 int twinklecounter = 0;
 
 //RIPPLE
-uint8_t colour;                                               // Ripple colour is randomized.
-int center = 0;                                               // Center of the current ripple.
-int step = -1;                                                // -1 is the initializing step.
-uint8_t myfade = 255;                                         // Starting brightness.
-#define maxsteps 16                                           // Case statement wouldn't allow a variable.
-uint8_t bgcol = 0;                                            // Background colour rotates.
-int thisdelay = 20;                                           // Standard delay value.
+uint8_t colour;       // Ripple colour is randomized.
+int center = 0;       // Center of the current ripple.
+int step = -1;        // -1 is the initializing step.
+uint8_t myfade = 255; // Starting brightness.
+#define maxsteps 16   // Case statement wouldn't allow a variable.
+uint8_t bgcol = 0;    // Background colour rotates.
+int thisdelay = 20;   // Standard delay value.
 
 //DOTS
-uint8_t   count =   0;                                        // Count up to 255 and then reverts to 0
-uint8_t fadeval = 224;                                        // Trail behind the LED's. Lower => faster fade.
+uint8_t count = 0;     // Count up to 255 and then reverts to 0
+uint8_t fadeval = 224; // Trail behind the LED's. Lower => faster fade.
 uint8_t bpm = 30;
 
 //LIGHTNING
-uint8_t frequency = 50;                                       // controls the interval between strikes
-uint8_t flashes = 8;                                          //the upper limit of flashes per strike
+uint8_t frequency = 50; // controls the interval between strikes
+uint8_t flashes = 8;    //the upper limit of flashes per strike
 unsigned int dimmer = 1;
-uint8_t ledstart;                                             // Starting location of a flash
+uint8_t ledstart; // Starting location of a flash
 uint8_t ledlen;
 int lightningcounter = 0;
 
 //FUNKBOX
-int idex = 0;                //-LED INDEX (0 to NUM_LEDS-1
+int idex = 0; //-LED INDEX (0 to NUM_LEDS-1
 int TOP_INDEX = int(NUM_LEDS / 2);
-int thissat = 255;           //-FX LOOPS DELAY VAR
+int thissat = 255; //-FX LOOPS DELAY VAR
 uint8_t thishuepolice = 0;
-int antipodal_index(int i) {
+int antipodal_index(int i)
+{
   int iN = i + TOP_INDEX;
-  if (i >= TOP_INDEX) {
-    iN = ( i + TOP_INDEX ) % NUM_LEDS;
+  if (i >= TOP_INDEX)
+  {
+    iN = (i + TOP_INDEX) % NUM_LEDS;
   }
   return iN;
 }
 
 //FIRE
-#define COOLING  55
+#define COOLING 55
 #define SPARKING 120
 bool gReverseDirection = false;
 
@@ -118,20 +119,20 @@ byte flashGreen = green;
 byte flashBlue = blue;
 byte flashBrightness = brightness;
 
-
 /********************************** START SETUP*****************************************/
-void setup() {
+void setup()
+{
 
   //Start Serial
   Serial.begin(115200);
-
-  //Serial.println("Start Setup");
   DEBUG_MSG("Start Setup\n");
-  FastLED.addLeds<WS2812B, DATA_PIN , GRB>(leds, NUM_LEDS);
+  //configure FastLED
+  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(50);
-  setupStripedPalette( CRGB::Red, CRGB::Red, CRGB::White, CRGB::White); //for CANDY CANE
-  gPal = HeatColors_p; //for FIRE
-  //Serial.println("FastLED setup complete");
+  
+  //setup colorPalletes
+  setupStripedPalette(CRGB::Red, CRGB::Red, CRGB::White, CRGB::White); //for CANDY CANE
+  gPal = HeatColors_p;                                                 //for FIRE
   DEBUG_MSG("FastLED setup complete\n");
 
   //set PinMode of PIR
@@ -148,54 +149,54 @@ void setup() {
 
   //set PinMode of SOUND sensor
   pinMode(MIC_PIN, INPUT);
-  //Serial.println("PinMode set");
   DEBUG_MSG("PinMode set\n");
-
 
   //start dht sensor
   dht.begin();
-  //Serial.println("DHT start");
-  DEBUG_MSG("DHT start\n");
-
+  DEBUG_MSG("DHT started\n");
 
   //Setup Wifi & mqtt
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
-  //Serial.println("Client ready");
   DEBUG_MSG("Client ready\n");
 
-   //OTA SETUP
-    ArduinoOTA.setPort(OTAport);
-    // Hostname defaults to esp8266-[ChipID]
-    ArduinoOTA.setHostname(SENSORNAME);
+/********************************** START SETUP for OTA*****************************************/
+  //OTA SETUP
+  ArduinoOTA.setPort(OTAport);
+  // Hostname defaults to esp8266-[ChipID]
+  ArduinoOTA.setHostname(SENSORNAME);
 
-    // No authentication by default
-   // ArduinoOTA.setPassword(OTApassword);
+  // No authentication by default
+  // ArduinoOTA.setPassword(OTApassword);
 
-    ArduinoOTA.onStart([]() {
-     Serial.println("Starting");
-    });
-    ArduinoOTA.onEnd([]() {
-     Serial.println("\nEnd");
-    });
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-     Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    });
-    ArduinoOTA.onError([](ota_error_t error) {
-     Serial.printf("Error[%u]: ", error);
-     if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-     else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-     else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-     else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-     else if (error == OTA_END_ERROR) Serial.println("End Failed");
-    });
-    ArduinoOTA.begin();
+  ArduinoOTA.onStart([]() {
+    Serial.println("Starting");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR)
+      Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR)
+      Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR)
+      Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR)
+      Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR)
+      Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
 
   Serial.println("Ready");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
-
 
   /********************************** START SETUP ws2812FX*****************************************/
   Serial.print("WS2812FX Setup...");
@@ -209,22 +210,26 @@ void setup() {
   ws2812fx.start();
 
   Serial.println("Done");
-  //loadSettings
-  if (!SPIFFS.begin()) {
+  /********************************** Load settings from SPIFFS****************************************/
+  if (!SPIFFS.begin())
+  {
     Serial.println("Failed to mount file system");
     return;
   }
-  
-  if (!loadConfig()) {
+
+  if (!loadConfig())
+  {
     Serial.println("Failed to load config");
-  } else {
+  }
+  else
+  {
     Serial.println("Config loaded");
   }
-  
 }
 
 /********************************** START SETUP WIFI*****************************************/
-void setup_wifi() {
+void setup_wifi()
+{
 
   delay(10);
   // We start by connecting to a WiFi network
@@ -235,7 +240,8 @@ void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     ESP.wdtFeed();
     delay(500);
     yield();
@@ -249,17 +255,19 @@ void setup_wifi() {
 }
 
 /********************************** START RECONNECT*****************************************/
-void reconnect() {
+void reconnect()
+{
   // Loop until we're reconnected
-  byte trys = 0;
-  while (!client.connected()) {
+  byte trys = 0; //reboot after to many fails (10)
+  while (!client.connected())
+  {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(SENSORNAME, mqtt_username, mqtt_password)) {
+    if (client.connect(SENSORNAME, mqtt_username, mqtt_password))
+    {
       Serial.println("connected");
       trys = 0;
       client.subscribe(light_set_topic);
-      
 
       ESP.wdtFeed();
       delay(500);
@@ -268,37 +276,40 @@ void reconnect() {
       sendToMqtt("button", buttonPressed, light_notify_topic);
       //sendButtonState();
       gettemperature();
-      
-
-    } else {
+    }
+    else
+    {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       yield();
 
-      trys +=1;
+      trys += 1;
       Serial.print("Trys: ");
       Serial.println(trys);
-      if(trys >=10){
+      if (trys >= 10)
+      {
         Serial.println("Reach maximum of trys. Restarting ESP...");
         ESP.restart();
       }
-
-      delay(5000); 
+      delay(5000);
     }
   }
 }
 
 /********************************** START MAIN LOOP*****************************************/
-void loop() {
+void loop()
+{
 
   //reconnect
-  if (!client.connected()) {
+  if (!client.connected())
+  {
     reconnect();
   }
   //check Wifi state
-  if (WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED)
+  {
     delay(1);
     yield();
     Serial.print("WIFI Disconnected. Attempting reconnection.");
@@ -306,11 +317,12 @@ void loop() {
     return;
   }
   ESP.wdtFeed();
+
+  //Mqtt client loop
   client.loop();
 
+  //OTA handle
   ArduinoOTA.handle();
-
-  delay(1);
 
   //Check Button
   buttonCheck();
@@ -319,10 +331,11 @@ void loop() {
   ldrCheck();
 
   //Check for Motion
-  if(!stateOn){
+  if (!stateOn)
+  {
     motionCheck();
   }
-  
+
   //refresh Temperature
   gettemperature();
 
@@ -333,45 +346,54 @@ void loop() {
   selectMode();
 
   //change color
-  if (colorChanged) {
+  if (colorChanged)
+  {
     setRecivedColor();
   }
 
-  //Start ws2812fx
+  //Start ws2812fx or FastLED
   showleds();
 
-  if (playAll) {
+  //check for demo mode
+  if (playAll)
+  {
     demoMode();
   }
   yield();
 }
 
 /********************************** START CALLBACK*****************************************/
-void callback(char* topic, byte* payload, unsigned int length) {
+void callback(char *topic, byte *payload, unsigned int length)
+{
   yield();
+  //Print arrived message
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
 
   //read message
   char message[length + 1];
-  for (u_int i = 0; i < length; i++) {
+  for (u_int i = 0; i < length; i++)
+  {
     message[i] = (char)payload[i];
   }
   message[length] = '\0';
   Serial.println(message);
 
-  if (!processJson(message)) {
+  //process message
+  if (!processJson(message))
+  {
     return;
   }
 
-  if (stateOn) {
-    //Serial.println("MAPPING");
+  if (stateOn)
+  {
     realRed = map(red, 0, 255, 0, brightness);
     realGreen = map(green, 0, 255, 0, brightness);
     realBlue = map(blue, 0, 255, 0, brightness);
   }
-  else {
+  else
+  {
 
     realRed = 0;
     realGreen = 0;
@@ -381,36 +403,42 @@ void callback(char* topic, byte* payload, unsigned int length) {
   inFade = false; // Kill the current fade
 
   Serial.println(effect);
+  //send actual state
   sendState();
 }
 
 /********************************** START PROCESS JSON*****************************************/
-bool processJson(char* message) {
-  //Serial.print("ProcessJSON...");
+bool processJson(char *message)
+{
   DEBUG_MSG("ProcessJSON...");
 
+  //create JSON document
   DynamicJsonDocument jsonDoc(BUFFER_SIZE);
-
-  //JsonObject& root = jsonBuffer.parseObject(message);
   DeserializationError error = deserializeJson(jsonDoc, message);
 
-  //if (!root.success()) {
-    if(error){
+  //check for errors
+  if (error)
+  {
     Serial.println("parseObject() failed");
     return false;
   }
 
   //read power state
-  if (jsonDoc.containsKey("state")) {
-    if (strcmp(jsonDoc["state"], on_cmd) == 0) {
+  if (jsonDoc.containsKey("state"))
+  {
+    if (strcmp(jsonDoc["state"], on_cmd) == 0)
+    {
       stateOn = true;
-    } else if (strcmp(jsonDoc["state"], off_cmd) == 0) {
+    }
+    else if (strcmp(jsonDoc["state"], off_cmd) == 0)
+    {
       stateOn = false;
       onbeforeflash = false;
     }
   }
   //read brightness
-  if (jsonDoc.containsKey("brightness")) {
+  if (jsonDoc.containsKey("brightness"))
+  {
     brightness = jsonDoc["brightness"];
     //brightness = brightness*2.55;
     brightness = map(brightness, 0, 100, 0, 255);
@@ -418,13 +446,15 @@ bool processJson(char* message) {
     Serial.println(brightness);
   }
   //read effect
-  if (jsonDoc.containsKey("effect")) {
+  if (jsonDoc.containsKey("effect"))
+  {
     effect = jsonDoc["effect"];
     effectString = effect;
     oldeffectString = effect;
   }
   //read color
-  if (jsonDoc.containsKey("color")) {
+  if (jsonDoc.containsKey("color"))
+  {
     red = jsonDoc["color"]["r"];
     green = jsonDoc["color"]["g"];
     blue = jsonDoc["color"]["b"];
@@ -432,30 +462,40 @@ bool processJson(char* message) {
     //setColor(red, green, blue);
   }
   //read speed
-  if (jsonDoc.containsKey("transition")) {
+  if (jsonDoc.containsKey("transition"))
+  {
     transitionTime = jsonDoc["transition"];
     transitionTime = transitionTime * 10;
   }
-  else if ( effectString == "static") {
+  else if (effectString == "static")
+  {
     transitionTime = 0;
   }
   //read auto mode
-  if (jsonDoc.containsKey("auto")) {
-    if (strcmp(jsonDoc["auto"], on_cmd) == 0) {
+  if (jsonDoc.containsKey("auto"))
+  {
+    if (strcmp(jsonDoc["auto"], on_cmd) == 0)
+    {
       autoMode = true;
-    } else if (strcmp(jsonDoc["auto"], off_cmd) == 0) {
+    }
+    else if (strcmp(jsonDoc["auto"], off_cmd) == 0)
+    {
       autoMode = false;
     }
   }
-  if (jsonDoc.containsKey("extLDR")){
+  if (jsonDoc.containsKey("extLDR"))
+  {
     extLDR = jsonDoc["extLDR"];
   }
   //Serial.println("Done");
   DEBUG_MSG("Done\n");
   //saveSettingsToEEPROM();
-  if (!saveConfig()) {
+  if (!saveConfig())
+  {
     Serial.println("Failed to save config");
-  } else {
+  }
+  else
+  {
     Serial.println("Config saved");
   }
   //loadSettingsFromEEPROM();
@@ -491,7 +531,9 @@ void sendState() {
   DEBUG_MSG("Done.\n");
 
 }*/
-void sendState(){
+void sendState()
+{
+  //create JSON document
   DynamicJsonDocument jsonDoc(BUFFER_SIZE);
   jsonDoc["state"] = (stateOn) ? on_cmd : off_cmd;
   JsonObject color = jsonDoc.createNestedObject("color");
@@ -500,28 +542,30 @@ void sendState(){
   color["b"] = blue;
 
   yield();
-  jsonDoc["brightness"] = map(brightness, 0 , 255, 0, 100);
+  jsonDoc["brightness"] = map(brightness, 0, 255, 0, 100);
   jsonDoc["effect"] = effectString.c_str();
 
+  //send state to Mqtt
   sendToMqtt(jsonDoc, light_state_topic);
-
 }
 
 /********************************** Select Mode ***********************************************/
-void selectMode() {
+void selectMode()
+{
   //Serial.println("selectMode...");
   DEBUG_MSG("selectMode\n");
 
-
   ESP.wdtFeed();
   //check which effect is selected
-  for (int i = 0; i < ws2812fx.getModeCount(); i++) {
+  for (int i = 0; i < ws2812fx.getModeCount(); i++)
+  {
 
-    if (effectString == ws2812fx.getModeName(i)) {
+    if (effectString == ws2812fx.getModeName(i))
+    {
       //set Color
       fxmode = i;
       effectString = "";
-      resetSunrise = true;//reset Sunrise see also 04_effects /EFFECT SUNRISE
+      resetSunrise = true; //reset Sunrise see also 04_effects /EFFECT SUNRISE
       Serial.print("MODE: ");
       Serial.println(ws2812fx.getModeName(i));
       FastLEDmode = false;
@@ -529,33 +573,41 @@ void selectMode() {
     yield();
   }
   //check if play All is selected
-  if (effectString == "All") {
+  if (effectString == "All")
+  {
     playAll = true;
-  } else {
+  }
+  else
+  {
     playAll = false;
   }
 
   //if effectString is not Empty then check for FastLED effects
-  if (effectString.length() >= 1) {
+  if (effectString.length() >= 1)
+  {
     fastLedEffects();
   }
 
   //if automode is on set effect to static
-  if (autoMode && !stateOn) {
+  if (autoMode && !stateOn)
+  {
     fxmode = 0;
   }
 }
 
 /********************************** START Set Color*****************************************/
-void setRecivedColor() {
+void setRecivedColor()
+{
 
-  if (colorChanged) {
+  if (colorChanged)
+  {
 
     Serial.println("Change Color...");
     //convert color
     hexC = ((uint32_t)red << 16) | ((uint32_t)green << 8) | blue;
     //shift colors
-    for (int c = NUM_COLORS - 1; c >= 0; c--) {
+    for (int c = NUM_COLORS - 1; c >= 0; c--)
+    {
       colorArray[c + 1] = colorArray[c];
       Serial.println(colorArray[c], HEX);
     }
@@ -565,145 +617,191 @@ void setRecivedColor() {
   }
 }
 
-void setColor(int inR, int inG, int inB) {
+void setColor(int inR, int inG, int inB)
+{
   Serial.println("Set Color...");
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i].red   = inR;
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i].red = inR;
     leds[i].green = inG;
-    leds[i].blue  = inB;
+    leds[i].blue = inB;
   }
 }
 
 /********************************** START SHOW LEDS ***********************************************/
-void showleds() {
+void showleds()
+{
   DEBUG_MSG("showLeds\n");
   ESP.wdtFeed();
+  //use ws2812fx if no FastLED effect is selected
+  if (!FastLEDmode)
+  {
+    //Update Segment
+    // parameters: index, start, stop, mode, color[], speed, reverse
+    ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - NUM_LEDS
 
-  if (!FastLEDmode) {  
+    //update brightness
+    ws2812fx.setBrightness(brightness);
+    
     //Turn leds on if stateOn = true and ws2812fx is not running already
-    if (stateOn && !ws2812fx.isRunning()) {
+    if (stateOn && !ws2812fx.isRunning())
+    {
       DEBUG_MSG("WS2812FX setSegment\n");
-      //Update Segment
-      // parameters: index, start, stop, mode, color, speed, reverse
-      ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
-      ws2812fx.start();
-      Serial.println("WS2812FX Start");  
-      
-    } else if (!stateOn &&  ws2812fx.isRunning()) {
-      //ws2812fx.setColor(0x000000);
-      // ws2812fx.setSegment(0, 0, NUM_LEDS, fxmode, colorArray, transitionTime, false); // segment 0 is leds 0 - 300
+      ws2812fx.start(); //start ws2812fx
+      Serial.println("WS2812FX Start");
+    }
+    //turn off lights with ws2812fx
+    else if (!stateOn && ws2812fx.isRunning())
+    {
       ws2812fx.stop();
-      Serial.println("WS2812FX Stop");
+      DEBUG_MSG("WS2812fx stopped\n");
     }
 
-    if(motionOn && !stateOn){
-        
-           for(int i = 0; i<NUM_LEDS/2+1;i++){
-              leds[NUM_LEDS/2-i] =  colorArray[0];
-              leds[NUM_LEDS/2+i] = colorArray[0];
-              FastLED.show();
-              delay(10);
-              client.loop();
-              motionCheck();
-              
-            }
-            Serial.println("motion On");
-           
+    //motion activated light on
+    if (motionOn && !stateOn && !alreadyON)
+    {
+      //Turn leds on from middle to side
+      for (int i = 0; i < NUM_LEDS / 2 + 1; i++)
+      {
+        leds[NUM_LEDS / 2 - i] = colorArray[0];
+        leds[NUM_LEDS / 2 + i] = colorArray[0];
+        FastLED.setBrightness(brightness);
+        FastLED.show(); //update leds
+        delay(10);      //short delay between each led
+        client.loop();  //check mqtt to provide connection abort
+        motionCheck();
+        //check if all led are on to provide performance issues
+        if (i == NUM_LEDS / 2)
+        {
+          alreadyON = true;
+        }
+      }
+      DEBUG_MSG("Motion enabled light\n");
     }
-
-    if(!motionOn && !stateOn){
-       for(int i = 0; i<NUM_LEDS/2+10;i++ ){
-          if(i>=5){
-            for(int x =i-5; x<i; x++){
-              leds[NUM_LEDS-x].nscale8(50);
-              leds[x].nscale8(50);
-              FastLED.show();
-              
-            }
-          }else{
-            for(int x =0; x<5;x++){
-              leds[NUM_LEDS-x].nscale8(150);
-              leds[x].nscale8(150);
-              FastLED.show();
-            }
+    //Turn motion activated light off
+    if (!motionOn && !stateOn && alreadyON)
+    {
+      //Turn leds off from outer to inner, fade leds
+      for (int i = 0; i < NUM_LEDS / 2 + 10; i++)
+      {
+        if (i >= 5)
+        {
+          for (int x = i - 5; x < i; x++)
+          {
+            leds[NUM_LEDS - x].nscale8(50);
+            leds[x].nscale8(50);
+            FastLED.show();
           }
-          
-          delay(10);
-          client.loop();
-         }
-         
-         
-         Serial.println("motion OFF");
-    }
- 
-  } else if (FastLEDmode && stateOn) {
-   // Serial.println("FastLED show");
-   DEBUG_MSG("FastLED show\n");
-    if (ws2812fx.isRunning()) {
+        }
+        else
+        {
+          for (int x = 0; x < 5; x++)
+          {
+            leds[NUM_LEDS - x].nscale8(150);
+            leds[x].nscale8(150);
+            FastLED.show();
+          }
+        }
+
+        delay(10);     //short delay between fading
+        client.loop(); //check mqtt to provide connection abort
+        if (i == NUM_LEDS / 2 + 9)
+        {
+          alreadyON = false;
+        }
+      }
+      DEBUG_MSG("Motion disabled light\n");
+    } //else if(!motionOn && !stateOn){
+      // FastLED.clear();
+      // FastLED.show();
+      // }
+
+    //FastLED effect selected and leds turn on
+  }
+  else if (FastLEDmode && stateOn)
+  {
+    DEBUG_MSG("FastLED show\n");
+
+    //stop ws2812fx if it is running
+    if (ws2812fx.isRunning())
+    {
       ws2812fx.stop();
     }
 
+    //update brightness
     FastLED.setBrightness(brightness);
+    //update leds
     FastLED.show();
-    if ((transitionTime / 10) > 0 && (transitionTime / 10) < 130) { //Sets animation speed based on receieved value
+    //update animation speed
+    if ((transitionTime / 10) > 0 && (transitionTime / 10) < 130)
+    { //Sets animation speed based on receieved value
       FastLED.delay(1000 / (transitionTime / 10));
-      //delay(10*transitionTime);
-      //Serial.println(brightness);
     }
-
-  } else if (FastLEDmode && !stateOn) {
-    //Serial.println("FastLED off");
+  }
+  //FastLED effect is selectet and leds turn off
+  else if (FastLEDmode && !stateOn)
+  {
     DEBUG_MSG("FastLED off\n");
     FastLEDmode = false;
+    //reset index fill effects
     help_index_1 = (NUM_LEDS - 1) / 2;
-    help_index_2 = NUM_LEDS - 1 ;
-    //FastLED.clear();
+    help_index_2 = NUM_LEDS - 1;
+    //clear leds
+    FastLED.clear();
+    //update leds
     FastLED.show();
   }
-
-
 }
 
-void fastLedEffects() {
-  if (stateOn) {
-
+void fastLedEffects()
+{
+  if (stateOn)
+  {
 
     //EFFECT SUNRISE
-    if (effectString == "Sunrise") {
+    if (effectString == "Sunrise")
+    {
       FastLEDmode = true;
       //check if sunrise was already selected
-      if (resetSunrise) {
+      if (resetSunrise)
+      {
         heatIndexled = 0;
         resetSunrise = false;
       }
       //call sunrise
       sunrise();
-    } else {
+    }
+    else
+    {
       resetSunrise = true;
     }
 
-
     //EFFECT rainbow beatwave
-    if (effectString == "rainbow beatwave") {
+    if (effectString == "rainbow beatwave")
+    {
       FastLEDmode = true;
       transitionTime = 1000;
       //call rainbow_beatwave
       rainbow_beatwave();
-      EVERY_N_MILLISECONDS(100) {
+      EVERY_N_MILLISECONDS(100)
+      {
         uint8_t maxChanges = 24;
-        nblendPaletteTowardPalette(currentPalette, targetPalette, maxChanges);   // AWESOME palette blending capability.
+        nblendPaletteTowardPalette(currentPalette, targetPalette, maxChanges); // AWESOME palette blending capability.
       }
 
-      EVERY_N_SECONDS(5) {                                        // Change the target palette to a random one every 5 seconds.
+      EVERY_N_SECONDS(5)
+      { // Change the target palette to a random one every 5 seconds.
         targetPalette = CRGBPalette16(CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 192, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)));
       }
       showleds();
     }
 
     //EFFECT mover
-    if (effectString == "mover") {
+    if (effectString == "mover")
+    {
       FastLEDmode = true;
-      if (transitionTime <= 600) {
+      if (transitionTime <= 600)
+      {
         transitionTime = 1000;
       }
       //call mover effect
@@ -711,9 +809,9 @@ void fastLedEffects() {
       mover();
     }
 
-
     //EFFECT Pallete change
-    if (effectString == "Pallete change") {
+    if (effectString == "Pallete change")
+    {
       FastLEDmode = true;
       ChangePalettePeriodically();
       // nblendPaletteTowardPalette() will crossfade current palette slowly toward the target palette.
@@ -725,135 +823,150 @@ void fastLedEffects() {
       //   - meaningful values are 1-48.  1=veeeeeeeery slow, 48=quickest
       //   - "0" means do not change the currentPalette at all; freeze
 
-      EVERY_N_MILLISECONDS(100) {
+      EVERY_N_MILLISECONDS(100)
+      {
         uint8_t maxChanges = 24;
         nblendPaletteTowardPalette(currentPalette, targetPalette, maxChanges);
       }
 
-      EVERY_N_MILLISECONDS(thisdelay) {
+      EVERY_N_MILLISECONDS(thisdelay)
+      {
         static uint8_t startIndex = 0;
-        startIndex += 1;                                 // motion speed
+        startIndex += 1; // motion speed
         FillLEDsFromPaletteColors(startIndex);
       }
 
       showleds();
-
     }
 
     //EFFECT rainbow beat
-    if (effectString == "rainbow beat") {
+    if (effectString == "rainbow beat")
+    {
       FastLEDmode = true;
       //call rainbow beat
       rainbow_beat();
     }
 
     //EFFECT fill middle random single color
-    if (effectString == "Fill middle random multi") {
+    if (effectString == "Fill middle random multi")
+    {
       FastLEDmode = true;
       //call fill midddle
       fillmiddle(0);
     }
 
     //EFFECT fill middle random
-    if (effectString == "Fill middle") {
+    if (effectString == "Fill middle")
+    {
       FastLEDmode = true;
       //call fill midddle
       fillmiddle(1);
     }
 
     //EFFECT fill middle
-    if (effectString == "Fill middle random single") {
+    if (effectString == "Fill middle random single")
+    {
       FastLEDmode = true;
       //call fill midddle
       fillmiddle(2);
     }
 
     //EFFECT fill end random color
-    if (effectString == "Fill End random") {
+    if (effectString == "Fill End random")
+    {
       FastLEDmode = true;
       //call fill end
       fillEnd(0);
     }
 
     //EFFECT fill end choosen color
-    if (effectString == "Fill End single") {
+    if (effectString == "Fill End single")
+    {
       FastLEDmode = true;
       //call fill end
       fillEnd(1);
     }
     //EFFECT fill end different colors
-    if (effectString == "Fill End different") {
+    if (effectString == "Fill End different")
+    {
       FastLEDmode = true;
       //call fill end
       fillEnd(2);
     }
 
     //EFFECT sound reactive
-    if (effectString == "Sound reactive 1") {
+    if (effectString == "Sound reactive 1")
+    {
       FastLEDmode = true;
       //call soundeffect
       soundEffect(1);
     }
 
-    if (effectString == "Sound reactive 2") {
+    if (effectString == "Sound reactive 2")
+    {
       FastLEDmode = true;
       //call soundeffect
       soundEffect(2);
     }
 
-
     //EFFECT BPM
-    if (effectString == "bpm") {
+    if (effectString == "bpm")
+    {
       FastLEDmode = true;
       uint8_t BeatsPerMinute = 62;
       CRGBPalette16 palette = PartyColors_p;
-      uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-      for ( int i = 0; i < NUM_LEDS; i++) { //9948
+      uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
+      for (int i = 0; i < NUM_LEDS; i++)
+      { //9948
         leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
       }
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 30;
       }
       showleds();
     }
 
-
     //EFFECT Candy Cane
-    if (effectString == "CandyCane") {
+    if (effectString == "CandyCane")
+    {
       FastLEDmode = true;
       static uint8_t startIndex = 0;
       startIndex = startIndex + 1; /* higher = faster motion */
-      fill_palette( leds, NUM_LEDS,
-                    startIndex, 16, /* higher = narrower stripes */
-                    currentPalettestriped, 255, LINEARBLEND);
-      if (transitionTime == 0 or transitionTime == NULL) {
+      fill_palette(leds, NUM_LEDS,
+                   startIndex, 16, /* higher = narrower stripes */
+                   currentPalettestriped, 255, LINEARBLEND);
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 1;
       }
 
       showleds();
     }
 
-
     //EFFECT CONFETTI
-    if (effectString == "confetti" ) {
+    if (effectString == "confetti")
+    {
       FastLEDmode = true;
-      fadeToBlackBy( leds, NUM_LEDS, 25);
+      fadeToBlackBy(leds, NUM_LEDS, 25);
       int pos = random16(NUM_LEDS);
       leds[pos] += CRGB(realRed + random8(64), realGreen, realBlue);
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 30;
       }
 
       showleds();
     }
 
-
     //EFFECT CYCLON RAINBOW
-    if (effectString == "cyclon rainbow") {                    //Single Dot Down
+    if (effectString == "cyclon rainbow")
+    { //Single Dot Down
       FastLEDmode = true;
       static uint8_t hue = 0;
       // First slide the led in one direction
-      for (int i = 0; i < NUM_LEDS; i++) {
+      for (int i = 0; i < NUM_LEDS; i++)
+      {
         // Set the i'th led to red
         leds[i] = CHSV(hue++, 255, 255);
         yield();
@@ -867,8 +980,9 @@ void fastLedEffects() {
         delay(10);
         client.loop();
       }
-      
-      for (int i = (NUM_LEDS) - 1; i >= 0; i--) {
+
+      for (int i = (NUM_LEDS)-1; i >= 0; i--)
+      {
         // Set the i'th led to red
         leds[i] = CHSV(hue++, 255, 255);
         yield();
@@ -885,9 +999,9 @@ void fastLedEffects() {
       yield();
     }
 
-
     //EFFECT DOTS
-    if (effectString == "dots") {
+    if (effectString == "dots")
+    {
       FastLEDmode = true;
       uint8_t inner = beatsin8(bpm, NUM_LEDS / 4, NUM_LEDS / 4 * 3);
       uint8_t outer = beatsin8(bpm, 0, NUM_LEDS - 1);
@@ -897,86 +1011,98 @@ void fastLedEffects() {
       leds[outer] = CRGB::Aqua;
       nscale8(leds, NUM_LEDS, fadeval);
 
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 30;
       }
       showleds();
     }
 
-
     //EFFECT FIRE
-    if (effectString == "fire FastLED") {
+    if (effectString == "fire FastLED")
+    {
       FastLEDmode = true;
       Fire2012WithPalette();
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 150;
       }
       showleds();
     }
 
-    random16_add_entropy( random8());
-
+    random16_add_entropy(random8());
 
     //EFFECT Glitter
-    if (effectString == "glitter") {
+    if (effectString == "glitter")
+    {
       FastLEDmode = true;
-      fadeToBlackBy( leds, NUM_LEDS, 20);
+      fadeToBlackBy(leds, NUM_LEDS, 20);
       addGlitterColor(80, realRed, realGreen, realBlue);
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 30;
       }
       showleds();
     }
 
-
     //EFFECT JUGGLE
-    if (effectString == "juggle" ) {                           // eight colored dots, weaving in and out of sync with each other
+    if (effectString == "juggle")
+    { // eight colored dots, weaving in and out of sync with each other
       FastLEDmode = true;
       fadeToBlackBy(leds, NUM_LEDS, 20);
-      for (int i = 0; i < 8; i++) {
-        leds[beatsin16(i + 7, 0, NUM_LEDS - 1  )] |= CRGB(realRed, realGreen, realBlue);
+      for (int i = 0; i < 8; i++)
+      {
+        leds[beatsin16(i + 7, 0, NUM_LEDS - 1)] |= CRGB(realRed, realGreen, realBlue);
       }
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 130;
       }
       showleds();
     }
 
-
     //EFFECT LIGHTNING
-    if (effectString == "lightning") {
+    if (effectString == "lightning")
+    {
       FastLEDmode = true;
-      twinklecounter = twinklecounter + 1;                     //Resets strip if previous animation was running
-      if (twinklecounter < 2) {
+      twinklecounter = twinklecounter + 1; //Resets strip if previous animation was running
+      if (twinklecounter < 2)
+      {
         FastLED.clear();
         FastLED.show();
       }
-      ledstart = random8(NUM_LEDS);           // Determine starting location of flash
-      ledlen = random8(NUM_LEDS - ledstart);  // Determine length of flash (not to go beyond NUM_LEDS-1)
-      for (int flashCounter = 0; flashCounter < random8(3, flashes); flashCounter++) {
-        if (flashCounter == 0) dimmer = 5;    // the brightness of the leader is scaled down by a factor of 5
-        else dimmer = random8(1, 3);          // return strokes are brighter than the leader
+      ledstart = random8(NUM_LEDS);          // Determine starting location of flash
+      ledlen = random8(NUM_LEDS - ledstart); // Determine length of flash (not to go beyond NUM_LEDS-1)
+      for (int flashCounter = 0; flashCounter < random8(3, flashes); flashCounter++)
+      {
+        if (flashCounter == 0)
+          dimmer = 5; // the brightness of the leader is scaled down by a factor of 5
+        else
+          dimmer = random8(1, 3); // return strokes are brighter than the leader
         fill_solid(leds + ledstart, ledlen, CHSV(255, 0, 255 / dimmer));
-        showleds();    // Show a section of LED's
-        delay(random8(4, 10));                // each flash only lasts 4-10 milliseconds
+        showleds();                                           // Show a section of LED's
+        delay(random8(4, 10));                                // each flash only lasts 4-10 milliseconds
         fill_solid(leds + ledstart, ledlen, CHSV(255, 0, 0)); // Clear the section of LED's
         showleds();
-        if (flashCounter == 0) delay (130);   // longer delay until next flash after the leader
-        delay(50 + random8(100));             // shorter delay between strokes
+        if (flashCounter == 0)
+          delay(130);             // longer delay until next flash after the leader
+        delay(50 + random8(100)); // shorter delay between strokes
       }
-      delay(random8(frequency) * 100);        // delay between strikes
-      if (transitionTime == 0 or transitionTime == NULL) {
+      delay(random8(frequency) * 100); // delay between strikes
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 0;
       }
       showleds();
     }
 
-
     //EFFECT POLICE ALL
-    if (effectString == "police all") {                 //POLICE LIGHTS (TWO COLOR SOLID)
+    if (effectString == "police all")
+    { //POLICE LIGHTS (TWO COLOR SOLID)
       FastLEDmode = true;
       idex++;
-      if (idex >= NUM_LEDS) {
+      if (idex >= NUM_LEDS)
+      {
         idex = 0;
       }
       int idexR = idex;
@@ -984,127 +1110,154 @@ void fastLedEffects() {
       int thathue = (thishuepolice + 160) % 255;
       leds[idexR] = CHSV(thishuepolice, thissat, 255);
       leds[idexB] = CHSV(thathue, thissat, 255);
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 30;
       }
       showleds();
     }
 
     //EFFECT POLICE ONE
-    if (effectString == "police one") {
+    if (effectString == "police one")
+    {
       FastLEDmode = true;
       idex++;
-      if (idex >= NUM_LEDS) {
+      if (idex >= NUM_LEDS)
+      {
         idex = 0;
       }
       int idexR = idex;
       int idexB = antipodal_index(idexR);
       int thathue = (thishuepolice + 160) % 255;
-      for (int i = 0; i < NUM_LEDS; i++ ) {
-        if (i == idexR) {
+      for (int i = 0; i < NUM_LEDS; i++)
+      {
+        if (i == idexR)
+        {
           leds[i] = CHSV(thishuepolice, thissat, 255);
         }
-        else if (i == idexB) {
+        else if (i == idexB)
+        {
           leds[i] = CHSV(thathue, thissat, 255);
         }
-        else {
+        else
+        {
           leds[i] = CHSV(0, 0, 0);
         }
       }
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 30;
       }
       showleds();
     }
 
-
     //EFFECT RAINBOW
-    if (effectString == "rainbow") {
+    if (effectString == "rainbow")
+    {
       FastLEDmode = true;
       // FastLED's built-in rainbow generator
       //static uint8_t starthue = 0;
       thishue++;
       fill_rainbow(leds, NUM_LEDS, thishue, deltahue);
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 130;
       }
       showleds();
     }
 
-
     //EFFECT RAINBOW WITH GLITTER
-    if (effectString == "rainbow with glitter") {               // FastLED's built-in rainbow generator with Glitter
+    if (effectString == "rainbow with glitter")
+    { // FastLED's built-in rainbow generator with Glitter
       FastLEDmode = true;
       //static uint8_t starthue = 0;
       thishue++;
       fill_rainbow(leds, NUM_LEDS, thishue, deltahue);
       addGlitter(80);
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 130;
       }
       showleds();
     }
 
-
     //EFFECT SIENLON
-    if (effectString == "sinelon") {
+    if (effectString == "sinelon")
+    {
       FastLEDmode = true;
-      fadeToBlackBy( leds, NUM_LEDS, 20);
+      fadeToBlackBy(leds, NUM_LEDS, 20);
       int pos = beatsin16(13, 0, NUM_LEDS - 1);
       leds[pos] += CRGB(realRed, realGreen, realBlue);
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 150;
       }
       showleds();
     }
 
-
     //EFFECT TWINKLE
-    if (effectString == "twinkle") {
+    if (effectString == "twinkle")
+    {
       FastLEDmode = true;
       twinklecounter = twinklecounter + 1;
-      if (twinklecounter < 2) {                               //Resets strip if previous animation was running
+      if (twinklecounter < 2)
+      { //Resets strip if previous animation was running
         FastLED.clear();
         FastLED.show();
       }
       const CRGB lightcolor(8, 7, 1);
-      for ( int i = 0; i < NUM_LEDS; i++) {
-        if ( !leds[i]) continue; // skip black pixels
-        if ( leds[i].r & 1) { // is red odd?
+      for (int i = 0; i < NUM_LEDS; i++)
+      {
+        if (!leds[i])
+          continue; // skip black pixels
+        if (leds[i].r & 1)
+        {                        // is red odd?
           leds[i] -= lightcolor; // darken if red is odd
-        } else {
+        }
+        else
+        {
           leds[i] += lightcolor; // brighten if red is even
         }
       }
-      if ( random8() < DENSITY) {
+      if (random8() < DENSITY)
+      {
         int j = random16(NUM_LEDS);
-        if ( !leds[j] ) leds[j] = lightcolor;
+        if (!leds[j])
+          leds[j] = lightcolor;
       }
 
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 0;
       }
       showleds();
     }
 
     //EFFECT CHRISTMAS ALTERNATE
-    if (effectString == "christmas alternate") {
+    if (effectString == "christmas alternate")
+    {
       FastLEDmode = true;
-      for (int i = 0; i < NUM_LEDS; i++) {
-        if ((toggle + i) % 2 == 0) {
+      for (int i = 0; i < NUM_LEDS; i++)
+      {
+        if ((toggle + i) % 2 == 0)
+        {
           leds[i] = CRGB::Crimson;
         }
-        else {
+        else
+        {
           leds[i] = CRGB::DarkGreen;
         }
       }
-      if (toggle == 0) {
+      if (toggle == 0)
+      {
         toggle = 1;
       }
-      else {
+      else
+      {
         toggle = 0;
       }
-      if (transitionTime == 0 or transitionTime == NULL) {
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
         transitionTime = 130;
       }
       showleds();
@@ -1112,7 +1265,8 @@ void fastLedEffects() {
     }
 
     //EFFECT RANDOM STARS
-    if (effectString == "random stars") {
+    if (effectString == "random stars")
+    {
       FastLEDmode = true;
       if (toggle == 0)
       {
@@ -1120,14 +1274,14 @@ void fastLedEffects() {
         {
           stars[i] = random(0, NUM_LEDS);
         }
-        fill_solid (&(leds[0]), NUM_LEDS, CHSV(160, 255, brightness));
+        fill_solid(&(leds[0]), NUM_LEDS, CHSV(160, 255, brightness));
         toggle = 1;
       }
       else if (toggle == 1)
       {
         for (int j = 0; j < NUM_STARS; j++)
         {
-          leds[stars[j]] ++;
+          leds[stars[j]]++;
         }
         if (leds[stars[0]].r == 255)
         {
@@ -1138,7 +1292,7 @@ void fastLedEffects() {
       {
         for (int j = 0; j < NUM_STARS; j++)
         {
-          leds[stars[j]] --; //.fadeLightBy(i);
+          leds[stars[j]]--; //.fadeLightBy(i);
         }
         if (leds[stars[0]] <= CHSV(160, 255, brightness))
         {
@@ -1149,11 +1303,13 @@ void fastLedEffects() {
     }
 
     //EFFECT "Sine Hue"
-    if (effectString == "sine hue") {
+    if (effectString == "sine hue")
+    {
       FastLEDmode = true;
       static uint8_t hue_index = 0;
       static uint8_t led_index = 0;
-      if (led_index >= NUM_LEDS) {  //Start off at 0 if the led_index was incremented past the segment size in some other effect
+      if (led_index >= NUM_LEDS)
+      { //Start off at 0 if the led_index was incremented past the segment size in some other effect
         led_index = 0;
       }
       for (int i = 0; i < NUM_LEDS; i = i + 1)
@@ -1163,75 +1319,83 @@ void fastLedEffects() {
 
       led_index++, hue_index++;
 
-      if (hue_index >= 255) {
+      if (hue_index >= 255)
+      {
         hue_index = 0;
       }
       showleds();
     }
 
+    EVERY_N_MILLISECONDS(10)
+    {
 
-    EVERY_N_MILLISECONDS(10) {
-
-      nblendPaletteTowardPalette(currentPalette, targetPalette, maxChanges);  // FOR NOISE ANIMATIon
+      nblendPaletteTowardPalette(currentPalette, targetPalette, maxChanges); // FOR NOISE ANIMATIon
       {
         gHue++;
       }
-
     }
 
-      //EFFECT NOISE
-      if (effectString == "noise") {
-        FastLEDmode = true;
-        for (int i = 0; i < NUM_LEDS; i++) {                                     // Just onE loop to fill up the LED array as all of the pixels change.
-          uint8_t index = inoise8(i * scale, dist + i * scale) % 255;            // Get a value from the noise function. I'm using both x and y axis.
-          leds[i] = ColorFromPalette(currentPalette, index, 255, LINEARBLEND);   // With that value, look up the 8 bit colour palette value and assign it to the current LED.
-        }
-        dist += beatsin8(10, 1, 4);                                              // Moving along the distance (that random number we started out with). Vary it a bit with a sine wave.
-        // In some sketches, I've used millis() instead of an incremented counter. Works a treat.
-        if (transitionTime == 0 or transitionTime == NULL) {
-          transitionTime = 0;
-        }
-        showleds();
+    //EFFECT NOISE
+    if (effectString == "noise")
+    {
+      FastLEDmode = true;
+      for (int i = 0; i < NUM_LEDS; i++)
+      {                                                                      // Just onE loop to fill up the LED array as all of the pixels change.
+        uint8_t index = inoise8(i * scale, dist + i * scale) % 255;          // Get a value from the noise function. I'm using both x and y axis.
+        leds[i] = ColorFromPalette(currentPalette, index, 255, LINEARBLEND); // With that value, look up the 8 bit colour palette value and assign it to the current LED.
       }
-
-      //EFFECT RIPPLE
-      if (effectString == "ripple") {
-        FastLEDmode = true;
-        for (int i = 0; i < NUM_LEDS; i++) leds[i] = CHSV(bgcol++, 255, 15);  // Rotate background colour.
-        switch (step) {
-          case -1:                                                          // Initialize ripple variables.
-            center = random(NUM_LEDS);
-            colour = random8();
-            step = 0;
-            break;
-          case 0:
-            leds[center] = CHSV(colour, 255, 255);                          // Display the first pixel of the ripple.
-            step ++;
-            break;
-          case maxsteps:                                                    // At the end of the ripples.
-            step = -1;
-            break;
-          default:                                                             // Middle of the ripples.
-            leds[(center + step + NUM_LEDS) % NUM_LEDS] += CHSV(colour, 255, myfade / step * 2);   // Simple wrap from Marc Miller
-            leds[(center - step + NUM_LEDS) % NUM_LEDS] += CHSV(colour, 255, myfade / step * 2);
-            step ++;                                                         // Next step.
-            break;
-        }
-        if (transitionTime == 0 or transitionTime == NULL) {
-          transitionTime = 30;
-        }
-        showleds();
+      dist += beatsin8(10, 1, 4); // Moving along the distance (that random number we started out with). Vary it a bit with a sine wave.
+      // In some sketches, I've used millis() instead of an incremented counter. Works a treat.
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
+        transitionTime = 0;
       }
+      showleds();
+    }
 
-    
-    EVERY_N_SECONDS(5) {
+    //EFFECT RIPPLE
+    if (effectString == "ripple")
+    {
+      FastLEDmode = true;
+      for (int i = 0; i < NUM_LEDS; i++)
+        leds[i] = CHSV(bgcol++, 255, 15); // Rotate background colour.
+      switch (step)
+      {
+      case -1: // Initialize ripple variables.
+        center = random(NUM_LEDS);
+        colour = random8();
+        step = 0;
+        break;
+      case 0:
+        leds[center] = CHSV(colour, 255, 255); // Display the first pixel of the ripple.
+        step++;
+        break;
+      case maxsteps: // At the end of the ripples.
+        step = -1;
+        break;
+      default:                                                                               // Middle of the ripples.
+        leds[(center + step + NUM_LEDS) % NUM_LEDS] += CHSV(colour, 255, myfade / step * 2); // Simple wrap from Marc Miller
+        leds[(center - step + NUM_LEDS) % NUM_LEDS] += CHSV(colour, 255, myfade / step * 2);
+        step++; // Next step.
+        break;
+      }
+      if (transitionTime == 0 or transitionTime == NULL)
+      {
+        transitionTime = 30;
+      }
+      showleds();
+    }
+
+    EVERY_N_SECONDS(5)
+    {
       targetPalette = CRGBPalette16(CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 192, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)));
     }
 
-
-    if (startFade && effectString == "solid") {
+    if (startFade && effectString == "solid")
+    {
       // If we don't want to fade, skip it.
-      if (transitionTime == 0) {
+      if (transitionTime == 0)
+      {
         setColor(realRed, realGreen, realBlue);
 
         redVal = realRed;
@@ -1240,7 +1404,8 @@ void fastLedEffects() {
 
         startFade = false;
       }
-      else {
+      else
+      {
         loopCount = 0;
         stepR = calculateStep(redVal, realRed);
         stepG = calculateStep(grnVal, realGreen);
@@ -1250,23 +1415,28 @@ void fastLedEffects() {
       }
     }
 
-    if (inFade) {
+    if (inFade)
+    {
       startFade = false;
       unsigned long now = millis();
-      if (now - lastLoop > transitionTime) {
-        if (loopCount <= 1020) {
+      if (now - lastLoop > transitionTime)
+      {
+        if (loopCount <= 1020)
+        {
           lastLoop = now;
 
           redVal = calculateVal(stepR, redVal, loopCount);
           grnVal = calculateVal(stepG, grnVal, loopCount);
           bluVal = calculateVal(stepB, bluVal, loopCount);
 
-          if (effectString == "solidFAST") {
+          if (effectString == "solidFAST")
+          {
             setColor(redVal, grnVal, bluVal); // Write current values to LED pins
           }
           loopCount++;
         }
-        else {
+        else
+        {
           inFade = false;
         }
       }
@@ -1299,10 +1469,12 @@ void fastLedEffects() {
   and then divides that gap by 1020 to determine the size of the step
   between adjustments in the value.
 */
-int calculateStep(int prevValue, int endValue) {
+int calculateStep(int prevValue, int endValue)
+{
   int step = endValue - prevValue; // What's the overall gap?
-  if (step) {                      // If its non-zero,
-    step = 1020 / step;          //   divide by 1020
+  if (step)
+  {                     // If its non-zero,
+    step = 1020 / step; //   divide by 1020
   }
 
   return step;
@@ -1312,21 +1484,27 @@ int calculateStep(int prevValue, int endValue) {
    colors, it increases or decreases the value of that color by 1.
    (R, G, and B are each calculated separately.)
 */
-int calculateVal(int step, int val, int i) {
-  if ((step) && i % step == 0) { // If step is non-zero and its time to change a value,
-    if (step > 0) {              //   increment the value if step is positive...
+int calculateVal(int step, int val, int i)
+{
+  if ((step) && i % step == 0)
+  { // If step is non-zero and its time to change a value,
+    if (step > 0)
+    { //   increment the value if step is positive...
       val += 1;
     }
-    else if (step < 0) {         //   ...or decrement it if step is negative
+    else if (step < 0)
+    { //   ...or decrement it if step is negative
       val -= 1;
     }
   }
 
   // Defensive driving: make sure val stays in the range 0-255
-  if (val > 255) {
+  if (val > 255)
+  {
     val = 255;
   }
-  else if (val < 0) {
+  else if (val < 0)
+  {
     val = 0;
   }
 
@@ -1334,51 +1512,62 @@ int calculateVal(int step, int val, int i) {
 }
 
 /**************************** START STRIPLED PALETTE *****************************************/
-void setupStripedPalette( CRGB A, CRGB AB, CRGB B, CRGB BA) {
+void setupStripedPalette(CRGB A, CRGB AB, CRGB B, CRGB BA)
+{
   currentPalettestriped = CRGBPalette16(
-                            A, A, A, A, A, A, A, A, B, B, B, B, B, B, B, B
-                            //    A, A, A, A, A, A, A, A, B, B, B, B, B, B, B, B
-                          );
+      A, A, A, A, A, A, A, A, B, B, B, B, B, B, B, B
+      //    A, A, A, A, A, A, A, A, B, B, B, B, B, B, B, B
+  );
 }
 
 /********************************** START FADE************************************************/
-void fadeall() {
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i].nscale8(250);  //for CYCLon
+void fadeall()
+{
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i].nscale8(250); //for CYCLon
   }
 }
 
 /********************************** START FIRE **********************************************/
-void Fire2012WithPalette(){
+void Fire2012WithPalette()
+{
   // Array of temperature readings at each simulation cell
   static byte heat[NUM_LEDS];
 
   // Step 1.  Cool down every cell a little
-  for ( int i = 0; i < NUM_LEDS; i++) {
-    heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / NUM_LEDS) + 2));
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    heat[i] = qsub8(heat[i], random8(0, ((COOLING * 10) / NUM_LEDS) + 2));
   }
 
   // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-  for ( int k = NUM_LEDS - 1; k >= 2; k--) {
-    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
+  for (int k = NUM_LEDS - 1; k >= 2; k--)
+  {
+    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
   }
 
   // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
-  if ( random8() < SPARKING ) {
+  if (random8() < SPARKING)
+  {
     int y = random8(7);
-    heat[y] = qadd8( heat[y], random8(160, 255) );
+    heat[y] = qadd8(heat[y], random8(160, 255));
   }
 
   // Step 4.  Map from heat cells to LED colors
-  for ( int j = 0; j < NUM_LEDS; j++) {
+  for (int j = 0; j < NUM_LEDS; j++)
+  {
     // Scale the heat value from 0-255 down to 0-240
     // for best results with color palettes.
-    byte colorindex = scale8( heat[j], 240);
-    CRGB color = ColorFromPalette( gPal, colorindex);
+    byte colorindex = scale8(heat[j], 240);
+    CRGB color = ColorFromPalette(gPal, colorindex);
     int pixelnumber;
-    if ( gReverseDirection ) {
+    if (gReverseDirection)
+    {
       pixelnumber = (NUM_LEDS - 1) - j;
-    } else {
+    }
+    else
+    {
       pixelnumber = j;
     }
     leds[pixelnumber] = color;
@@ -1386,36 +1575,40 @@ void Fire2012WithPalette(){
 }
 
 /********************************** START ADD GLITTER *********************************************/
-void addGlitter( fract8 chanceOfGlitter){
-  if ( random8() < chanceOfGlitter) {
-    leds[ random16(NUM_LEDS) ] += CRGB::White;
+void addGlitter(fract8 chanceOfGlitter)
+{
+  if (random8() < chanceOfGlitter)
+  {
+    leds[random16(NUM_LEDS)] += CRGB::White;
   }
 }
 
 /********************************** START ADD GLITTER COLOR ****************************************/
-void addGlitterColor( fract8 chanceOfGlitter, int red, int green, int blue){
-  if ( random8() < chanceOfGlitter) {
-    leds[ random16(NUM_LEDS) ] += CRGB(red, green, blue);
+void addGlitterColor(fract8 chanceOfGlitter, int red, int green, int blue)
+{
+  if (random8() < chanceOfGlitter)
+  {
+    leds[random16(NUM_LEDS)] += CRGB(red, green, blue);
   }
 }
 
 /********************************Custom Palettes********************************************************/
 //sunrise palette
-DEFINE_GRADIENT_PALETTE( sunrise_gp ) {
-  //Syntay: palette's indicies (0-255), red, green, blue (rgb color code)
-  0,     0,  0,  0,   //black
-  25,   255,  0,  0,   //dark orange
-  102,   255, 77,  0,  //deep orange
-  153,   255, 103, 0,  //orange
-  204,   255, 129,  0, //light orange
-  255,   255, 167,  0, //near yellow
+DEFINE_GRADIENT_PALETTE(sunrise_gp){
+    //Syntay: palette's indicies (0-255), red, green, blue (rgb color code)
+    0, 0, 0, 0,       //black
+    25, 255, 0, 0,    //dark orange
+    102, 255, 77, 0,  //deep orange
+    153, 255, 103, 0, //orange
+    204, 255, 129, 0, //light orange
+    255, 255, 167, 0, //near yellow
 };
 
-CRGBPalette16 sunrisePal = sunrise_gp;//set pallete for sunrise
-
+CRGBPalette16 sunrisePal = sunrise_gp; //set pallete for sunrise
 
 /********************************** Sunrise effect********************************************************/
-void sunrise() {
+void sunrise()
+{
 
   // how often (in seconds) should the heat color increase?
   // for the default of 30 minutes, this should be about every 7 seconds
@@ -1431,54 +1624,71 @@ void sunrise() {
   fill_solid(leds, NUM_LEDS, colorled);
 
   // slowly increase the heat
-  EVERY_N_MILLISECONDS(interval) {
+  EVERY_N_MILLISECONDS(interval)
+  {
     // stop incrementing at 255, we don't want to overflow back to 0
-    if (heatIndexled < 255) {
+    if (heatIndexled < 255)
+    {
       heatIndexled++;
       showleds();
-    } else {
+    }
+    else
+    {
       heatIndexled = 0; //reset heatIndexled -> restart sunrise
     }
   }
-
 }
 
 /********************************** mover effect********************************************************/
 
-void mover() {
+void mover()
+{
   yield();
   static uint8_t hue = 0;
-  for (int i = 0; i < NUM_LEDS; i++) {
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
     yield();
     leds[i] += CHSV(hue, 255, 255);
     yield();
-    leds[(i + 5) % NUM_LEDS] += CHSV(hue + 85, 255, 255);     // We use modulus so that the location is between 0 and NUM_LEDS
+    leds[(i + 5) % NUM_LEDS] += CHSV(hue + 85, 255, 255); // We use modulus so that the location is between 0 and NUM_LEDS
     yield();
-    leds[(i + 10) % NUM_LEDS] += CHSV(hue + 170, 255, 255);   // Same here.
+    leds[(i + 10) % NUM_LEDS] += CHSV(hue + 170, 255, 255); // Same here.
     //show_at_max_brightness_for_power();
     showleds();
-    fadeToBlackBy(leds, NUM_LEDS, thisfademover);                  // Low values = slower fade.
+    fadeToBlackBy(leds, NUM_LEDS, thisfademover); // Low values = slower fade.
     yield();
-    delay(thisdelaymover);                                         // UGH!!!! A blocking delay. If you want to add controls, they may not work reliably.
+    delay(thisdelaymover); // UGH!!!! A blocking delay. If you want to add controls, they may not work reliably.
     client.loop();
   }
-} 
+}
 
-
-void ChangeMeMover() {                                             // A time (rather than loop) based demo sequencer. This gives us full control over the length of each sequence.
-  uint8_t secondHand = (millis() / 1000) % 15;                // IMPORTANT!!! Change '15' to a different value to change duration of the loop.
-  static uint8_t lastSecond = 99;                             // Static variable, means it's only defined once. This is our 'debounce' variable.
-  if (lastSecond != secondHand) {                             // Debounce to make sure we're not repeating an assignment.
+void ChangeMeMover()
+{                                              // A time (rather than loop) based demo sequencer. This gives us full control over the length of each sequence.
+  uint8_t secondHand = (millis() / 1000) % 15; // IMPORTANT!!! Change '15' to a different value to change duration of the loop.
+  static uint8_t lastSecond = 99;              // Static variable, means it's only defined once. This is our 'debounce' variable.
+  if (lastSecond != secondHand)
+  { // Debounce to make sure we're not repeating an assignment.
     yield();
     lastSecond = secondHand;
-    switch (secondHand) {
-      case  0: thisdelaymover = 20; thisfademover = 240; break;         // You can change values here, one at a time , or altogether.
-      case  5: thisdelaymover = 50; thisfademover = 128; break;
-      case 10: thisdelaymover = 100; thisfademover = 64; break;         // Only gets called once, and not continuously for the next several seconds. Therefore, no rainbows.
-      case 15: break;
+    switch (secondHand)
+    {
+    case 0:
+      thisdelaymover = 20;
+      thisfademover = 240;
+      break; // You can change values here, one at a time , or altogether.
+    case 5:
+      thisdelaymover = 50;
+      thisfademover = 128;
+      break;
+    case 10:
+      thisdelaymover = 100;
+      thisfademover = 64;
+      break; // Only gets called once, and not continuously for the next several seconds. Therefore, no rainbows.
+    case 15:
+      break;
     }
   }
-} 
+}
 
 /********************************** fill middle effect********************************************************/
 /*
@@ -1487,47 +1697,50 @@ void ChangeMeMover() {                                             // A time (ra
    1 = choosen color,
    2 = single color middle
 */
-void fillmiddle(int effectMode) {
+void fillmiddle(int effectMode)
+{
 
   //reset help index 1 & 2
-  if (help_index_1 <= 1) {
+  if (help_index_1 <= 1)
+  {
     help_index_1 = (NUM_LEDS - 1) / 2;
     help_index_2 = NUM_LEDS - 1;
     Serial.println("Reset index");
   }
-  if (help_index_2 != NUM_LEDS - 1) {
+  if (help_index_2 != NUM_LEDS - 1)
+  {
     help_index_2 = NUM_LEDS - 1;
   }
 
   //create 2  colors
   CRGB fillColor_1;
   CRGB fillColor_2;
-  switch (effectMode) {
-    case 0:
-      //create 2 random colors
-      fillColor_1 = CHSV(random8(), 255, 255);
-      fillColor_2 = CHSV(random8(), 255, 255);
-      break;
+  switch (effectMode)
+  {
+  case 0:
+    //create 2 random colors
+    fillColor_1 = CHSV(random8(), 255, 255);
+    fillColor_2 = CHSV(random8(), 255, 255);
+    break;
 
-    case 1:
-      //choosen color
-      fillColor_1 = CRGB(realRed, realGreen, realBlue);
-      fillColor_2 = CRGB(realRed, realGreen, realBlue);
-      break;
+  case 1:
+    //choosen color
+    fillColor_1 = CRGB(realRed, realGreen, realBlue);
+    fillColor_2 = CRGB(realRed, realGreen, realBlue);
+    break;
 
-    case 2:
-      //create 2 random colors
-      fillColor_1 = CHSV(random8(), 255, 255);
-      fillColor_2 = CHSV(random8(), 255, 255);
-      break;
-
+  case 2:
+    //create 2 random colors
+    fillColor_1 = CHSV(random8(), 255, 255);
+    fillColor_2 = CHSV(random8(), 255, 255);
+    break;
   }
 
-
   //LED run to middle
-  for (u_int ix = 0; ix < help_index_1; ix++) {
-    leds[ix] = fillColor_1; // CRGB::Blue;
-    leds[help_index_2 - ix] = fillColor_2;//CRGB::Orange;
+  for (u_int ix = 0; ix < help_index_1; ix++)
+  {
+    leds[ix] = fillColor_1;                // CRGB::Blue;
+    leds[help_index_2 - ix] = fillColor_2; //CRGB::Orange;
     showleds();
     delay(50);
     //turn led off
@@ -1537,9 +1750,12 @@ void fillmiddle(int effectMode) {
   }
 
   //fill middle stripe
-  if (effectMode != 2) { //two color middle
+  if (effectMode != 2)
+  { //two color middle
     fill_gradient_RGB(leds, help_index_1, fillColor_1, help_index_2 - help_index_1, fillColor_2);
-  } else { //single color middle
+  }
+  else
+  { //single color middle
     fill_gradient_RGB(leds, help_index_1, fillColor_1, help_index_2 - help_index_1, fillColor_1);
   }
   help_index_1--;
@@ -1553,39 +1769,42 @@ void fillmiddle(int effectMode) {
    1 = choosen color,
    2 = diffrent colors run/fill
 */
-void fillEnd(int effectMode) {
+void fillEnd(int effectMode)
+{
   //create color
   CRGB fillColor_1; //running LED
   CRGB fillColor_2; //LEDs at end
 
-  switch (effectMode) {
-    case 0:
-      //create 1 random color
-      fillColor_1 = CHSV(random8(), 255, 255);
-      fillColor_2 = fillColor_1;
-      break;
+  switch (effectMode)
+  {
+  case 0:
+    //create 1 random color
+    fillColor_1 = CHSV(random8(), 255, 255);
+    fillColor_2 = fillColor_1;
+    break;
 
-    case 1:
-      //use choosen colors
-      fillColor_1 = CRGB(realRed, realGreen, realBlue);
-      fillColor_2 = CRGB(realRed, realGreen, realBlue);
-      break;
+  case 1:
+    //use choosen colors
+    fillColor_1 = CRGB(realRed, realGreen, realBlue);
+    fillColor_2 = CRGB(realRed, realGreen, realBlue);
+    break;
 
-    case 2:
-      //create 2 random colors, random end
-      fillColor_1 = CHSV(random8(), 255, 255);
-      fillColor_2 = CHSV(random8(), 255, 255);
-
+  case 2:
+    //create 2 random colors, random end
+    fillColor_1 = CHSV(random8(), 255, 255);
+    fillColor_2 = CHSV(random8(), 255, 255);
   }
 
   //reset index
-  if (help_index_2 <= 1) {
+  if (help_index_2 <= 1)
+  {
     help_index_2 = NUM_LEDS - 1;
     Serial.println("Reset index");
   }
 
   //running LED
-  for (u_int i = 0; i < help_index_2; i++) {
+  for (u_int i = 0; i < help_index_2; i++)
+  {
     leds[i] = fillColor_1;
     showleds();
     delay(20);
@@ -1597,9 +1816,12 @@ void fillEnd(int effectMode) {
   showleds();
   Serial.println(help_index_2);
   delay(50);
-  if (help_index_2 == 299) {
+  if (help_index_2 == 299)
+  {
     leds[help_index_2] = fillColor_2;
-  } else {
+  }
+  else
+  {
     fill_gradient_RGB(leds, help_index_2, fillColor_2, NUM_LEDS - 1, fillColor_2);
   }
   showleds();
@@ -1608,123 +1830,141 @@ void fillEnd(int effectMode) {
 }
 
 /********************************** Sound reactive effect********************************************************/
-void soundEffect(int soundMode) {
+void soundEffect(int soundMode)
+{
   /*/soundMode 1 = blink to sound, with black
      soundMode 2 = blink to sound, always on
   */
-  if (digitalRead(MIC_PIN) == 1 && stateOn) {
+  if (digitalRead(MIC_PIN) == 1 && stateOn)
+  {
     fill_solid(leds, NUM_LEDS, CHSV(random8(), 255, 255));
     FastLED.show();
     //showleds();
 
-    while (digitalRead(MIC_PIN) == 1 && stateOn) {
+    while (digitalRead(MIC_PIN) == 1 && stateOn)
+    {
       //wait...
       delay(2);
       yield();
-      
     }
 
     // delay(5);
-    if (soundMode == 1) {
+    if (soundMode == 1)
+    {
       FastLED.clear();
     }
-  } else {
-    if (soundMode == 1 || !stateOn) {
+  }
+  else
+  {
+    if (soundMode == 1 || !stateOn)
+    {
       FastLED.clear();
-
     }
   }
 }
 
 /********************************** rainbow effects********************************************************/
 //rainbow beat
-void rainbow_beat() {
+void rainbow_beat()
+{
 
-  uint8_t beatA = beatsin8(17, 0, 255);                        // Starting hue
+  uint8_t beatA = beatsin8(17, 0, 255); // Starting hue
   uint8_t beatB = beatsin8(13, 0, 255);
-  fill_rainbow(leds, NUM_LEDS, (beatA + beatB) / 2, 8);        // Use FastLED's fill_rainbow routine.
-
+  fill_rainbow(leds, NUM_LEDS, (beatA + beatB) / 2, 8); // Use FastLED's fill_rainbow routine.
 }
 
 //rainbow beatwave
-void rainbow_beatwave() {
+void rainbow_beatwave()
+{
 
-  uint8_t wave1 = beatsin8(9, 0, 255);                        // That's the same as beatsin8(9);
+  uint8_t wave1 = beatsin8(9, 0, 255); // That's the same as beatsin8(9);
   uint8_t wave2 = beatsin8(8, 0, 255);
   uint8_t wave3 = beatsin8(7, 0, 255);
   uint8_t wave4 = beatsin8(6, 0, 255);
 
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = ColorFromPalette( currentPalette, i + wave1 + wave2 + wave3 + wave4, 255, LINEARBLEND);
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = ColorFromPalette(currentPalette, i + wave1 + wave2 + wave3 + wave4, 255, LINEARBLEND);
   }
-
 }
 
 /********************************** change Pallete effect********************************************************/
-void FillLEDsFromPaletteColors(uint8_t colorIndex) {
+void FillLEDsFromPaletteColors(uint8_t colorIndex)
+{
 
-  for (int i = 0; i < NUM_LEDS; i++) {
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
     leds[i] = ColorFromPalette(currentPalette, colorIndex + sin8(i * 16), 255);
     colorIndex += 3;
   }
 
 } // FillLEDsFromPaletteColors()
 
-
-void ChangePalettePeriodically() {
+void ChangePalettePeriodically()
+{
 
   uint8_t secondHand = (millis() / 1000) % 80;
   static uint8_t lastSecond = 99;
 
-  if (lastSecond != secondHand) {
+  if (lastSecond != secondHand)
+  {
     lastSecond = secondHand;
     CRGB p = CHSV(HUE_PURPLE, 255, 255);
     CRGB g = CHSV(HUE_GREEN, 255, 255);
     CRGB b = CRGB::Black;
     CRGB w = CRGB::White;
-    if (secondHand ==  0)  {
+    if (secondHand == 0)
+    {
       targetPalette = RainbowColors_p;
       Serial.println("Rainbow");
     }
-    if (secondHand == 10)  {
+    if (secondHand == 10)
+    {
       targetPalette = CRGBPalette16(g, g, b, b, p, p, b, b, g, g, b, b, p, p, b, b);
       Serial.println("1");
     }
-    if (secondHand == 20)  {
+    if (secondHand == 20)
+    {
       targetPalette = CRGBPalette16(b, b, b, w, b, b, b, w, b, b, b, w, b, b, b, w);
       Serial.println("2");
     }
-    if (secondHand == 30)  {
+    if (secondHand == 30)
+    {
       targetPalette = LavaColors_p;
       Serial.println("Lava");
     }
-    if (secondHand == 40)  {
+    if (secondHand == 40)
+    {
       targetPalette = CloudColors_p;
       Serial.println("Cloud");
     }
-    if (secondHand == 50)  {
+    if (secondHand == 50)
+    {
       targetPalette = PartyColors_p;
       Serial.println("Party");
     }
-    if (secondHand == 60)  {
+    if (secondHand == 60)
+    {
       targetPalette = OceanColors_p;
       Serial.println("Ocean");
     }
-    if (secondHand == 70)  {
+    if (secondHand == 70)
+    {
       targetPalette = ForestColors_p;
       Serial.println("Forest");
     }
   }
-
 }
 
 /********************************** START DEMO mode (playAll) ***********************************************/
-void demoMode() {
+void demoMode()
+{
 
   unsigned long now;
   now = millis();
   //change mode
-  if (now - last_change_auto > TIMER_MS_AUTO) {
+  if (now - last_change_auto > TIMER_MS_AUTO)
+  {
     fxmode = ((ws2812fx.getMode() + 1) % ws2812fx.getModeCount());
     Serial.println(ws2812fx.getModeName((ws2812fx.getMode() + 1) % ws2812fx.getModeCount()));
     last_change_auto = now;
@@ -1732,27 +1972,32 @@ void demoMode() {
 }
 
 /**********************************Button check ***********************************************/
-void buttonCheck() {
+void buttonCheck()
+{
   //Serial.println("ButtonCheck");
   DEBUG_MSG("ButtonCheck\n");
   unsigned long now;
   //check if button was pressed
-  if (digitalRead(BUTTON_PIN) == LOW) {
+  if (digitalRead(BUTTON_PIN) == LOW)
+  {
     buttonPressed = true;
     //sendButtonState();
     sendToMqtt("button", buttonPressed, light_notify_topic);
   }
 
   //Wait and reset Button State when button was pressed
-  if (buttonPressed && !motionOn) {                                    
+  if (buttonPressed && !motionOn)
+  {
     now = millis();
     //turn on LED
     digitalWrite(BUTTON_LED_PIN, HIGH);
     Serial.println("STOP active");
     yield();
-    if (now - last_change_button > TIMER_MS_BUTTON) {
+    if (now - last_change_button > TIMER_MS_BUTTON)
+    {
       //wait until motionstate = 0, blink LED
-      while (motionState == 1) {
+      while (motionState == 1)
+      {
         motionState = digitalRead(PIR_PIN);
         digitalWrite(BUTTON_LED_PIN, HIGH);
         delay(100);
@@ -1790,7 +2035,8 @@ void sendButtonState() {
 }*/
 
 /**********************************Send to MQTT ***********************************************/
-void sendToMqtt(String path, bool val, const char* destinationTopic){
+void sendToMqtt(String path, bool val, const char *destinationTopic)
+{
   // StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
   //JsonObject& root = jsonBuffer.createObject();
   StaticJsonDocument<BUFFER_SIZE> jsonDoc;
@@ -1802,7 +2048,6 @@ void sendToMqtt(String path, bool val, const char* destinationTopic){
   //root[path] = val;
   jsonDoc[path] = val;
 
-
   //char buffer[root.measureLength() + 1];
   //root.printTo(buffer, sizeof(buffer));
   char buffer[BUFFER_SIZE];
@@ -1813,25 +2058,28 @@ void sendToMqtt(String path, bool val, const char* destinationTopic){
   yield();
   Serial.println("Message sent");
 }
-void sendToMqtt(DynamicJsonDocument jsonDoc, const char* destinationTopic){
-   Serial.print("Sending Mesage: ");
-   serializeJson(jsonDoc, Serial);
-   yield();
-   char buffer[BUFFER_SIZE];
-   serializeJson(jsonDoc, buffer);
-   yield();
-   client.publish(destinationTopic, buffer,true);
+void sendToMqtt(DynamicJsonDocument jsonDoc, const char *destinationTopic)
+{
+  Serial.print("Sending Mesage: ");
+  serializeJson(jsonDoc, Serial);
+  yield();
+  char buffer[BUFFER_SIZE];
+  serializeJson(jsonDoc, buffer);
+  yield();
+  client.publish(destinationTopic, buffer, true);
 }
 
 /**********************************Temperature check ***********************************************/
-void gettemperature() {
+void gettemperature()
+{
   //Serial.println("getTemperature");
   DEBUG_MSG("getTemperature\n");
   //yield();
   unsigned long now;
   now = millis();
 
-  if (now - last_change_temp > TIMER_MS_TEMP) {
+  if (now - last_change_temp > TIMER_MS_TEMP)
+  {
     //Serial.print("Read dht...");
     DEBUG_MSG("read DHT...");
     //Read Humidity
@@ -1863,54 +2111,62 @@ void gettemperature() {
     //Serial.println("Temperatur gesendet");
     DEBUG_MSG("Done\n");
     last_change_temp = now;
-
   }
 }
 
 /********************************** PIR motion check ***********************************************/
-void motionCheck() {
+void motionCheck()
+{
   //Serial.println("motionCheck");
   DEBUG_MSG("motionCheck\n");
   //check for motion
   motionState = digitalRead(PIR_PIN);
   //change motionOn if autoMode is on and it's dark or motionOn is true
-  if ((autoMode && (lightState == 1 )) || motionOn) {
-    if (motionState == 1  && !buttonPressed) {
-      if(!motionOn){
-      motionOn = true;
-      sendToMqtt("motion", motionOn, light_set_topic);
+  if ((autoMode && (lightState == 1)) || motionOn)
+  {
+    if (motionState == 1 && !buttonPressed)
+    {
+      if (!motionOn)
+      {
+        motionOn = true;
+        sendToMqtt("motion", motionOn, light_set_topic);
       }
-
-    } else {
-      if(motionOn){
-      motionOn = false;
-       sendToMqtt("motion", motionOn, light_set_topic);
-       }
+    }
+    else
+    {
+      if (motionOn)
+      {
+        motionOn = false;
+        sendToMqtt("motion", motionOn, light_set_topic);
+      }
     }
   }
   yield();
 }
 
 /********************************** LDR check ***********************************************/
-void ldrCheck() {
+void ldrCheck()
+{
   //Serial.println("LDRcheck");
   DEBUG_MSG("LDR check\n");
   //check for light
-  lightState = digitalRead(LDR_PIN)&&extLDR;
+  lightState = digitalRead(LDR_PIN) && extLDR;
   yield();
-
 }
 
 /********************************** load from Config ***********************************************/
-bool loadConfig() {
+bool loadConfig()
+{
   File configFile = SPIFFS.open("/config.json", "r");
-  if (!configFile) {
+  if (!configFile)
+  {
     Serial.println("Failed to open config file");
     return false;
   }
 
   size_t size = configFile.size();
-  if (size > 1024) {
+  if (size > 1024)
+  {
     Serial.println("Config file size is too large");
     return false;
   }
@@ -1931,11 +2187,11 @@ bool loadConfig() {
   DeserializationError error = deserializeJson(json, buf.get());
 
   // if (!json.success()) {
-   if(error){
+  if (error)
+  {
     Serial.println("Failed to parse config file");
     return false;
   }
- 
 
   Serial.println("SPIFFS: ");
   Serial.print("stateOn: ");
@@ -1945,51 +2201,55 @@ bool loadConfig() {
   motionOn = json["motionOn"];
   Serial.println(motionOn);
   Serial.print("effectString: ");
-  
+
   effectsave = json["effectString"];
   effectString = effectsave;
   Serial.println(effectString);
   Serial.print("automode: ");
-  autoMode= json["autoMode"];
+  autoMode = json["autoMode"];
   Serial.println(autoMode);
   Serial.print("brightness: ");
-  brightness= json["brightness"];
+  brightness = json["brightness"];
   Serial.println(brightness);
 
   Serial.print("CA0: ");
-  colorArray[0]= json["color0"];
+  colorArray[0] = json["color0"];
   Serial.println(colorArray[0]);
   Serial.print("CA1: ");
-  colorArray[1]= json["color1"];
+  colorArray[1] = json["color1"];
   Serial.println(colorArray[1]);
   Serial.print("CA2: ");
-  colorArray[2]= json["color2"];
+  colorArray[2] = json["color2"];
   Serial.println(colorArray[2]);
 
   Serial.print("transitionTime:");
-  transitionTime =json["transitionTime"];
+  transitionTime = json["transitionTime"];
   Serial.println(transitionTime);
   Serial.print("extLDR: ");
-  extLDR= json["extLDR"];
+  extLDR = json["extLDR"];
   Serial.println(extLDR);
   serializeJson(json, Serial);
-  
+
   return true;
 }
 
 /********************************** write to Config***********************************************/
-bool saveConfig() {
+bool saveConfig()
+{
   //StaticJsonBuffer<200> jsonBuffer;
   StaticJsonDocument<256> json;
   //JsonObject& json = jsonBuffer.createObject();
- 
+
   json["stateOn"] = stateOn;
   json["motionOn"] = motionOn;
   //effectsave = effectString
-  if(effectString != ""){
+  if (effectString != "")
+  {
     json["effectString"] = effectString.c_str();
-  }else{
-   json["effectString"] = oldeffectString.c_str();
+  }
+  else
+  {
+    json["effectString"] = oldeffectString.c_str();
   }
   json["autoMode"] = autoMode;
   json["brightness"] = brightness;
@@ -1998,14 +2258,14 @@ bool saveConfig() {
   json["color1"] = colorArray[1];
   json["color2"] = colorArray[2];
   Serial.print("CAR1: ");
-  Serial.println(colorArray[1],HEX);
+  Serial.println(colorArray[1], HEX);
 
   json["transitionTime"] = transitionTime;
   json["extLDR"] = extLDR;
-  
 
   File configFile = SPIFFS.open("/config.json", "w");
-  if (!configFile) {
+  if (!configFile)
+  {
     Serial.println("Failed to open config file for writing");
     return false;
   }
