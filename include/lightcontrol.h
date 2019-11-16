@@ -141,6 +141,8 @@ boolean colorChanged = false;
 bool stateOn = false;
 //motion detection on
 bool motionOn = false;
+//strip already on?
+bool alreadyON = false;
 //effect Speed
 unsigned int transitionTime = 0;
 //LED effect number
