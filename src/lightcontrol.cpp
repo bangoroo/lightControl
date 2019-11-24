@@ -724,7 +724,7 @@ void showleds()
       //Turn leds off from outer to inner, fade leds
       for (int i = 0; i < NUM_LEDS / 2 + 10; i++)
       {
-        if (i >= 5)
+        if (i >= 5)   //for the whole strip, expected the first 5 lights
         {
           for (int x = i - 5; x < i; x++)
           {
@@ -733,7 +733,7 @@ void showleds()
             FastLED.show();
           }
         }
-        else
+        else //for the first 5 lights
         {
           for (int x = 0; x < 5; x++)
           {
