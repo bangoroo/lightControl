@@ -659,7 +659,45 @@ void showleds()
       ws2812fx.setBrightness(brightness);
     }
     
-    //motion activated light on
+    
+
+    //FastLED effect selected and leds turn on
+  }
+  else if (FastLEDmode && stateOn)
+  {
+    DEBUG_MSG("FastLED show\n");
+
+    //stop ws2812fx if it is running
+    if (ws2812fx.isRunning())
+    {
+      ws2812fx.stop();
+    }
+
+    //update brightness
+    FastLED.setBrightness(brightness);
+    //update leds
+    FastLED.show();
+    //update animation speed
+    if ((transitionTime / 10) > 0 && (transitionTime / 10) < 130)
+    { //Sets animation speed based on receieved value
+      FastLED.delay(1000 / (transitionTime / 10));
+    }
+  }
+  //FastLED effect is selectet and leds turn off
+  else if (FastLEDmode && !stateOn && !alreadyON)
+  {
+    DEBUG_MSG("FastLED off\n");
+    FastLEDmode = false;
+    //reset index fill effects
+    help_index_1 = (NUM_LEDS - 1) / 2;
+    help_index_2 = NUM_LEDS - 1;
+    //clear leds
+    FastLED.clear();
+    //update leds
+    FastLED.show();
+  }
+
+  //motion activated light on
     if (motionOn && !stateOn && !alreadyON)
     {
       //Turn leds on from middle to side
@@ -699,8 +737,8 @@ void showleds()
         {
           for (int x = 0; x < 5; x++)
           {
-            leds[NUM_LEDS - x].nscale8(150);
-            leds[x].nscale8(150);
+            leds[NUM_LEDS - x].nscale8(10);
+            leds[x].nscale8(10);
             FastLED.show();
           }
         }
@@ -717,42 +755,6 @@ void showleds()
       // FastLED.clear();
       // FastLED.show();
       // }
-
-    //FastLED effect selected and leds turn on
-  }
-  else if (FastLEDmode && stateOn)
-  {
-    DEBUG_MSG("FastLED show\n");
-
-    //stop ws2812fx if it is running
-    if (ws2812fx.isRunning())
-    {
-      ws2812fx.stop();
-    }
-
-    //update brightness
-    FastLED.setBrightness(brightness);
-    //update leds
-    FastLED.show();
-    //update animation speed
-    if ((transitionTime / 10) > 0 && (transitionTime / 10) < 130)
-    { //Sets animation speed based on receieved value
-      FastLED.delay(1000 / (transitionTime / 10));
-    }
-  }
-  //FastLED effect is selectet and leds turn off
-  else if (FastLEDmode && !stateOn && !alreadyON)
-  {
-    DEBUG_MSG("FastLED off\n");
-    FastLEDmode = false;
-    //reset index fill effects
-    help_index_1 = (NUM_LEDS - 1) / 2;
-    help_index_2 = NUM_LEDS - 1;
-    //clear leds
-    FastLED.clear();
-    //update leds
-    FastLED.show();
-  }
 }
 
 void fastLedEffects()
