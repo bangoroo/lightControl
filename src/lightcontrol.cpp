@@ -161,7 +161,7 @@ void setup()
   client.setCallback(callback);
   DEBUG_MSG("Client ready\n");
 
-/********************************** START SETUP for OTA*****************************************/
+  /********************************** START SETUP for OTA*****************************************/
   //OTA SETUP
   ArduinoOTA.setPort(OTAport);
   // Hostname defaults to esp8266-[ChipID]
@@ -402,7 +402,6 @@ void callback(char *topic, byte *payload, unsigned int length)
   startFade = true;
   inFade = false; // Kill the current fade
 
-  Serial.println(effect);
   //send actual state
   sendState();
 }
@@ -1760,14 +1759,16 @@ void BouncingColoredBalls(int BallCount, byte colors[][3], boolean continuous) {
 
     ballsStillBouncing = false; // assume no balls bouncing
     for (int i = 0 ; i < BallCount ; i++) {
-      setPixel(Position[i],colors[i][0],colors[i][1],colors[i][2]);
+      leds[Position[i]].setColorCode(colorArray[i]);
+      //setPixel(Position[i],colors[i][0],colors[i][1],colors[i][2]);
       if ( ballBouncing[i] ) {
         ballsStillBouncing = true;
       }
     }
     
     showleds();
-    setColor(0,0,0);
+    //setColor(0,0,0);
+    FastLED.clear();
     client.loop();
   }
 }
