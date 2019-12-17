@@ -345,11 +345,11 @@ void loop()
   //select mode
   selectMode();
 
-  //change color
-  if (colorChanged)
-  {
-    setRecivedColor();
-  }
+  // //change color
+  // if (colorChanged)
+  // {
+  //   setRecivedColor();
+  // }
 
   //Start ws2812fx or FastLED
   showleds();
@@ -457,7 +457,8 @@ bool processJson(char *message)
     red = jsonDoc["color"]["r"];
     green = jsonDoc["color"]["g"];
     blue = jsonDoc["color"]["b"];
-    colorChanged = true;
+    //colorChanged = true;
+    setRecivedColor();
     //setColor(red, green, blue);
   }
   //read speed
@@ -598,8 +599,8 @@ void selectMode()
 void setRecivedColor()
 {
 
-  if (colorChanged)
-  {
+  // if (colorChanged)
+  // {
 
     Serial.println("Change Color...");
     //convert color
@@ -613,7 +614,7 @@ void setRecivedColor()
     //change color
     colorArray[0] = hexC;
     colorChanged = false;
-  }
+  // }
 }
 
 void setColor(int inR, int inG, int inB)
@@ -628,10 +629,10 @@ void setColor(int inR, int inG, int inB)
 }
 
 // Set a LED color (not yet visible)
-void setPixel(int Pixel, byte red, byte green, byte blue) {
-   leds[Pixel].r = red;
-   leds[Pixel].g = green;
-   leds[Pixel].b = blue;
+void setPixel(int Pixel, byte lred, byte lgreen, byte lblue) {
+   leds[Pixel].r = lred;
+   leds[Pixel].g = lgreen;
+   leds[Pixel].b = lblue;
 }
 
 /********************************** START SHOW LEDS ***********************************************/
@@ -1026,9 +1027,9 @@ void fastLedEffects()
       uint8_t inner = beatsin8(bpm, NUM_LEDS / 4, NUM_LEDS / 4 * 3);
       uint8_t outer = beatsin8(bpm, 0, NUM_LEDS - 1);
       uint8_t middle = beatsin8(bpm, NUM_LEDS / 3, NUM_LEDS / 3 * 2);
-      leds[middle] = CRGB::Purple;
-      leds[inner] = CRGB::Blue;
-      leds[outer] = CRGB::Aqua;
+      leds[middle] = colorArray[0]; //CRGB::Purple;
+      leds[inner] = colorArray[1]; //CRGB::Blue;
+      leds[outer] = colorArray[2]; //CRGB::Aqua;
       nscale8(leds, NUM_LEDS, fadeval);
 
       if (transitionTime == 0 or transitionTime == NULL)
@@ -1755,11 +1756,13 @@ void BouncingColoredBalls(int BallCount, byte colors[][3], boolean continuous) {
         }
       }
       Position[i] = round( Height[i] * (NUM_LEDS - 1) / StartHeight);
+      client.loop();
     }
 
     ballsStillBouncing = false; // assume no balls bouncing
     for (int i = 0 ; i < BallCount ; i++) {
       leds[Position[i]].setColorCode(colorArray[i]);
+      brightness = 127;
       //setPixel(Position[i],colors[i][0],colors[i][1],colors[i][2]);
       if ( ballBouncing[i] ) {
         ballsStillBouncing = true;
