@@ -768,7 +768,7 @@ void fastLedEffects()
 {
   if (stateOn)
   {
-
+    alreadyON = false;
     //EFFECT SUNRISE
     if (effectString == "Sunrise")
     {
@@ -924,10 +924,14 @@ void fastLedEffects()
     {
       FastLEDmode = true;
       //call BouncingColoredBalls
-      byte ballColor[3][3] = { {0xff, 0,0},
-                      {0x00, 0xff, 0x00},
-                      {0, 0, 0xff} };
-      BouncingColoredBalls(3, ballColor, false);
+      BouncingColoredBalls(3, false);
+    }
+
+    if (effectString == "Bouncing Balls continuous")
+    {
+      FastLEDmode = true;
+      //call BouncingColoredBalls
+      BouncingColoredBalls(3, true);
     }
 
     //EFFECT BPM
@@ -1713,7 +1717,7 @@ void ChangeMeMover()
 
 /********************************** Bouncing Balls********************************************************/
 //effect from tweak4All.com
-void BouncingColoredBalls(int BallCount, byte colors[][3], boolean continuous) {
+void BouncingColoredBalls(int BallCount, boolean continuous) {
   float Gravity = -9.81;
   int StartHeight = 1;
   
@@ -1753,6 +1757,7 @@ void BouncingColoredBalls(int BallCount, byte colors[][3], boolean continuous) {
           } else {
             ballBouncing[i]=false;
           }
+          client.loop();
         }
       }
       Position[i] = round( Height[i] * (NUM_LEDS - 1) / StartHeight);
@@ -1762,7 +1767,7 @@ void BouncingColoredBalls(int BallCount, byte colors[][3], boolean continuous) {
     ballsStillBouncing = false; // assume no balls bouncing
     for (int i = 0 ; i < BallCount ; i++) {
       leds[Position[i]].setColorCode(colorArray[i]);
-      brightness = 127;
+      //brightness = 127;
       //setPixel(Position[i],colors[i][0],colors[i][1],colors[i][2]);
       if ( ballBouncing[i] ) {
         ballsStillBouncing = true;
