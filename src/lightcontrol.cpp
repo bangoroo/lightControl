@@ -565,13 +565,6 @@ void setColor(int inR, int inG, int inB)
   }
 }
 
-// Set a LED color (not yet visible)
-void setPixel(int Pixel, byte lred, byte lgreen, byte lblue) {
-   leds[Pixel].r = lred;
-   leds[Pixel].g = lgreen;
-   leds[Pixel].b = lblue;
-}
-
 /********************************** START SHOW LEDS ***********************************************/
 void showleds()
 {
@@ -1654,8 +1647,6 @@ void BouncingColoredBalls(int BallCount, boolean continuous) {
     ballsStillBouncing = false; // assume no balls bouncing
     for (int i = 0 ; i < BallCount ; i++) {
       leds[Position[i]].setColorCode(colorArray[i]);
-      //brightness = 127;
-      //setPixel(Position[i],colors[i][0],colors[i][1],colors[i][2]);
       if ( ballBouncing[i] ) {
         ballsStillBouncing = true;
       }
