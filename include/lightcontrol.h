@@ -133,9 +133,6 @@ byte realRed = 0;
 byte realGreen = 0;
 byte realBlue = 0;
 
-//store if color has change
-boolean colorChanged = false;
-
 //LED state
 //Regular on
 bool stateOn = false;
@@ -180,6 +177,7 @@ void sendState() ;
 void selectMode();
 void setRecivedColor();
 void setColor(int inR, int inG, int inB) ;
+void setPixel(int Pixel, byte red, byte green, byte blue);
 void showleds();
 void fastLedEffects();
 int calculateStep(int prevValue, int endValue);
@@ -197,6 +195,7 @@ void fillEnd(int effectMode) ;
 void soundEffect(int soundMode);
 void rainbow_beat();
 void rainbow_beatwave();
+void BouncingColoredBalls(int BallCount, boolean continuous);
 void FillLEDsFromPaletteColors(uint8_t colorIndex);
 void ChangePalettePeriodically();
 void demoMode();

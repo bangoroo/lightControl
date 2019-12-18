@@ -59,7 +59,7 @@ uint8_t ledstart; // Starting location of a flash
 uint8_t ledlen;
 int lightningcounter = 0;
 
-//FUNKBOX
+//FUNKBOX POLICE
 int idex = 0; //-LED INDEX (0 to NUM_LEDS-1
 int TOP_INDEX = int(NUM_LEDS / 2);
 int thissat = 255; //-FX LOOPS DELAY VAR
@@ -82,7 +82,7 @@ bool gReverseDirection = false;
 //BPM
 uint8_t gHue = 0;
 
-//CHRISTMAS
+//CHRISTMAS, RANDOM STARS
 int toggle = 0;
 
 //RANDOM STARS
@@ -98,26 +98,6 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 CRGB leds[NUM_LEDS];
-
-/******************************** GLOBALS for fade/flash *******************************/
-bool startFade = false;
-bool onbeforeflash = false;
-unsigned long lastLoop = 0;
-
-int effectSpeed = 0;
-bool inFade = false;
-int loopCount = 0;
-int stepR, stepG, stepB;
-int redVal, grnVal, bluVal;
-
-bool flash = false;
-bool startFlash = false;
-int flashLength = 0;
-unsigned long flashStartTime = 0;
-byte flashRed = red;
-byte flashGreen = green;
-byte flashBlue = blue;
-byte flashBrightness = brightness;
 
 /********************************** START SETUP*****************************************/
 void setup()
@@ -161,7 +141,7 @@ void setup()
   client.setCallback(callback);
   DEBUG_MSG("Client ready\n");
 
-/********************************** START SETUP for OTA*****************************************/
+  /********************************** START SETUP for OTA*****************************************/
   //OTA SETUP
   ArduinoOTA.setPort(OTAport);
   // Hostname defaults to esp8266-[ChipID]
@@ -345,12 +325,6 @@ void loop()
   //select mode
   selectMode();
 
-  //change color
-  if (colorChanged)
-  {
-    setRecivedColor();
-  }
-
   //Start ws2812fx or FastLED
   showleds();
 
@@ -399,10 +373,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     realGreen = 0;
     realBlue = 0;
   }
-  startFade = true;
-  inFade = false; // Kill the current fade
 
-  Serial.println(effect);
   //send actual state
   sendState();
 }
@@ -433,7 +404,6 @@ bool processJson(char *message)
     else if (strcmp(jsonDoc["state"], off_cmd) == 0)
     {
       stateOn = false;
-      onbeforeflash = false;
     }
   }
   //read brightness
@@ -458,8 +428,7 @@ bool processJson(char *message)
     red = jsonDoc["color"]["r"];
     green = jsonDoc["color"]["g"];
     blue = jsonDoc["color"]["b"];
-    colorChanged = true;
-    //setColor(red, green, blue);
+    setRecivedColor();
   }
   //read speed
   if (jsonDoc.containsKey("transition"))
@@ -498,41 +467,14 @@ bool processJson(char *message)
   {
     Serial.println("Config saved");
   }
-  //loadSettingsFromEEPROM();
-
+  
   return true;
 }
 
-/********************************** START SEND STATE*****************************************
-void sendState() {
-  //Serial.print("SendState...");
-  DEBUG_MSG("SendState");
-
-  //StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
-  DynamicJsonBuffer jsonBuffer(BUFFER_SIZE);
-
-
-  JsonObject& root = jsonBuffer.createObject();
-
-  root["state"] = (stateOn) ? on_cmd : off_cmd;
-  JsonObject& color = root.createNestedObject("color");
-  color["r"] = red;
-  color["g"] = green;
-  color["b"] = blue;
-  //light
-  root["brightness"] = map(brightness, 0, 255, 0, 100);//brightness/2.55;
-  root["effect"] = effectString.c_str();
-
-  char buffer[root.measureLength() + 1];
-  root.printTo(buffer, sizeof(buffer));
-
-  client.publish(light_state_topic, buffer, true);
- // Serial.println("Done");
-  DEBUG_MSG("Done.\n");
-
-}*/
+/********************************** START SEND STATE*****************************************/
 void sendState()
 {
+  DEBUG_MSG("SendState");
   //create JSON document
   DynamicJsonDocument jsonDoc(BUFFER_SIZE);
   jsonDoc["state"] = (stateOn) ? on_cmd : off_cmd;
@@ -545,6 +487,7 @@ void sendState()
   jsonDoc["brightness"] = map(brightness, 0, 255, 0, 100);
   jsonDoc["effect"] = effectString.c_str();
 
+  DEBUG_MSG("Done.\n");
   //send state to Mqtt
   sendToMqtt(jsonDoc, light_state_topic);
 }
@@ -598,10 +541,6 @@ void selectMode()
 /********************************** START Set Color*****************************************/
 void setRecivedColor()
 {
-
-  if (colorChanged)
-  {
-
     Serial.println("Change Color...");
     //convert color
     hexC = ((uint32_t)red << 16) | ((uint32_t)green << 8) | blue;
@@ -613,8 +552,6 @@ void setRecivedColor()
     }
     //change color
     colorArray[0] = hexC;
-    colorChanged = false;
-  }
 }
 
 void setColor(int inR, int inG, int inB)
@@ -761,7 +698,7 @@ void fastLedEffects()
 {
   if (stateOn)
   {
-
+    alreadyON = false;
     //EFFECT SUNRISE
     if (effectString == "Sunrise")
     {
@@ -913,6 +850,20 @@ void fastLedEffects()
       soundEffect(2);
     }
 
+    if (effectString == "Bouncing Balls")
+    {
+      FastLEDmode = true;
+      //call BouncingColoredBalls
+      BouncingColoredBalls(3, false);
+    }
+
+    if (effectString == "Bouncing Balls continuous")
+    {
+      FastLEDmode = true;
+      //call BouncingColoredBalls
+      BouncingColoredBalls(3, true);
+    }
+
     //EFFECT BPM
     if (effectString == "bpm")
     {
@@ -1010,9 +961,9 @@ void fastLedEffects()
       uint8_t inner = beatsin8(bpm, NUM_LEDS / 4, NUM_LEDS / 4 * 3);
       uint8_t outer = beatsin8(bpm, 0, NUM_LEDS - 1);
       uint8_t middle = beatsin8(bpm, NUM_LEDS / 3, NUM_LEDS / 3 * 2);
-      leds[middle] = CRGB::Purple;
-      leds[inner] = CRGB::Blue;
-      leds[outer] = CRGB::Aqua;
+      leds[middle] = colorArray[0]; //CRGB::Purple;
+      leds[inner] = colorArray[1]; //CRGB::Blue;
+      leds[outer] = colorArray[2]; //CRGB::Aqua;
       nscale8(leds, NUM_LEDS, fadeval);
 
       if (transitionTime == 0 or transitionTime == NULL)
@@ -1392,59 +1343,9 @@ void fastLedEffects()
 
     EVERY_N_SECONDS(5)
     {
-      targetPalette = CRGBPalette16(CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 192, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)));
+       targetPalette = CRGBPalette16(CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 192, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)));
     }
 
-    if (startFade && effectString == "solid")
-    {
-      // If we don't want to fade, skip it.
-      if (transitionTime == 0)
-      {
-        setColor(realRed, realGreen, realBlue);
-
-        redVal = realRed;
-        grnVal = realGreen;
-        bluVal = realBlue;
-
-        startFade = false;
-      }
-      else
-      {
-        loopCount = 0;
-        stepR = calculateStep(redVal, realRed);
-        stepG = calculateStep(grnVal, realGreen);
-        stepB = calculateStep(bluVal, realBlue);
-
-        inFade = true;
-      }
-    }
-
-    if (inFade)
-    {
-      startFade = false;
-      unsigned long now = millis();
-      if (now - lastLoop > transitionTime)
-      {
-        if (loopCount <= 1020)
-        {
-          lastLoop = now;
-
-          redVal = calculateVal(stepR, redVal, loopCount);
-          grnVal = calculateVal(stepG, grnVal, loopCount);
-          bluVal = calculateVal(stepB, bluVal, loopCount);
-
-          if (effectString == "solidFAST")
-          {
-            setColor(redVal, grnVal, bluVal); // Write current values to LED pins
-          }
-          loopCount++;
-        }
-        else
-        {
-          inFade = false;
-        }
-      }
-    }
   }
 }
 
@@ -1693,6 +1594,75 @@ void ChangeMeMover()
     }
   }
 }
+
+/********************************** Bouncing Balls********************************************************/
+//effect from tweak4All.com
+void BouncingColoredBalls(int BallCount, boolean continuous) {
+  float Gravity = -9.81;
+  int StartHeight = 1;
+  
+  float Height[BallCount];
+  float ImpactVelocityStart = sqrt( -2 * Gravity * StartHeight );
+  float ImpactVelocity[BallCount];
+  float TimeSinceLastBounce[BallCount];
+  int   Position[BallCount];
+  long  ClockTimeSinceLastBounce[BallCount];
+  float Dampening[BallCount];
+  boolean ballBouncing[BallCount];
+  boolean ballsStillBouncing = true;
+  
+  for (int i = 0 ; i < BallCount ; i++) {   
+    ClockTimeSinceLastBounce[i] = millis();
+    Height[i] = StartHeight;
+    Position[i] = 0; 
+    ImpactVelocity[i] = ImpactVelocityStart;
+    TimeSinceLastBounce[i] = 0;
+    Dampening[i] = 0.90 - float(i)/pow(BallCount,2);
+    ballBouncing[i]=true; 
+  }
+
+  while (ballsStillBouncing) {
+    for (int i = 0 ; i < BallCount ; i++) {
+      TimeSinceLastBounce[i] =  millis() - ClockTimeSinceLastBounce[i];
+      Height[i] = 0.5 * Gravity * pow( TimeSinceLastBounce[i]/1000 , 2.0 ) + ImpactVelocity[i] * TimeSinceLastBounce[i]/1000;
+  
+      if ( Height[i] < 0 ) {                      
+        Height[i] = 0;
+        ImpactVelocity[i] = Dampening[i] * ImpactVelocity[i];
+        ClockTimeSinceLastBounce[i] = millis();
+  
+        if ( ImpactVelocity[i] < 0.01 ) {
+          if (continuous) {
+            ImpactVelocity[i] = ImpactVelocityStart;
+          } else {
+            ballBouncing[i]=false;
+          }
+          client.loop();
+        }
+      }
+      Position[i] = round( Height[i] * (NUM_LEDS - 1) / StartHeight);
+      client.loop();
+    }
+
+    ballsStillBouncing = false; // assume no balls bouncing
+    for (int i = 0 ; i < BallCount ; i++) {
+      leds[Position[i]].setColorCode(colorArray[i]);
+      if ( ballBouncing[i] ) {
+        ballsStillBouncing = true;
+      }
+    }
+    
+    showleds();
+    //setColor(0,0,0);
+    FastLED.clear();
+    client.loop();
+    if((!effectString.startsWith("Bouncing"))|| !stateOn){
+      break;
+    }
+  }
+}
+
+
 
 /********************************** fill middle effect********************************************************/
 /*
@@ -1956,6 +1926,11 @@ void ChangePalettePeriodically()
     {
       targetPalette = ForestColors_p;
       Serial.println("Forest");
+    }
+    if (secondHand ==80)
+    {
+      targetPalette = CRGBPalette16(CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)), CHSV(random8(), 192, random8(128, 255)), CHSV(random8(), 255, random8(128, 255)));
+      Serial.println("Random");
     }
   }
 }
