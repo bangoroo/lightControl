@@ -133,9 +133,6 @@ byte realRed = 0;
 byte realGreen = 0;
 byte realBlue = 0;
 
-//store if color has change
-boolean colorChanged = false;
-
 //LED state
 //Regular on
 bool stateOn = false;

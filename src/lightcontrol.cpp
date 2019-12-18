@@ -345,12 +345,6 @@ void loop()
   //select mode
   selectMode();
 
-  // //change color
-  // if (colorChanged)
-  // {
-  //   setRecivedColor();
-  // }
-
   //Start ws2812fx or FastLED
   showleds();
 
@@ -457,9 +451,7 @@ bool processJson(char *message)
     red = jsonDoc["color"]["r"];
     green = jsonDoc["color"]["g"];
     blue = jsonDoc["color"]["b"];
-    //colorChanged = true;
     setRecivedColor();
-    //setColor(red, green, blue);
   }
   //read speed
   if (jsonDoc.containsKey("transition"))
@@ -533,6 +525,7 @@ void sendState() {
 }*/
 void sendState()
 {
+  DEBUG_MSG("SendState");
   //create JSON document
   DynamicJsonDocument jsonDoc(BUFFER_SIZE);
   jsonDoc["state"] = (stateOn) ? on_cmd : off_cmd;
@@ -545,6 +538,7 @@ void sendState()
   jsonDoc["brightness"] = map(brightness, 0, 255, 0, 100);
   jsonDoc["effect"] = effectString.c_str();
 
+  DEBUG_MSG("Done.\n");
   //send state to Mqtt
   sendToMqtt(jsonDoc, light_state_topic);
 }
@@ -598,10 +592,6 @@ void selectMode()
 /********************************** START Set Color*****************************************/
 void setRecivedColor()
 {
-
-  // if (colorChanged)
-  // {
-
     Serial.println("Change Color...");
     //convert color
     hexC = ((uint32_t)red << 16) | ((uint32_t)green << 8) | blue;
@@ -613,8 +603,6 @@ void setRecivedColor()
     }
     //change color
     colorArray[0] = hexC;
-    colorChanged = false;
-  // }
 }
 
 void setColor(int inR, int inG, int inB)
@@ -1778,6 +1766,9 @@ void BouncingColoredBalls(int BallCount, boolean continuous) {
     //setColor(0,0,0);
     FastLED.clear();
     client.loop();
+    if((!effectString.startsWith("Bouncing"))|| !stateOn){
+      break;
+    }
   }
 }
 
