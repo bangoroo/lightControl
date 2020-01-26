@@ -307,9 +307,6 @@ void loop()
   //Check Button
   buttonCheck();
 
-  //Check LDR state
-  ldrCheck();
-
   //Check for Motion
   if (!stateOn)
   {
@@ -596,8 +593,6 @@ void showleds()
       ws2812fx.setBrightness(brightness);
     }
     
-    
-
     //FastLED effect selected and leds turn on
   }
   else if (FastLEDmode && stateOn)
@@ -646,13 +641,10 @@ void showleds()
         FastLED.show(); //update leds
         delay(10);      //short delay between each led
         client.loop();  //check mqtt to provide connection abort
-        motionCheck();
         //check if all led are on to provide performance issues
-        if (i == NUM_LEDS / 2)
-        {
-          alreadyON = true;
-        }
+              
       }
+      alreadyON = true;
       DEBUG_MSG("Motion enabled light\n");
     }
     //Turn motion activated light off
@@ -661,6 +653,8 @@ void showleds()
       //Turn leds off from outer to inner, fade leds
       for (int i = 0; i < NUM_LEDS / 2 + 10; i++)
       {
+        motionCheck();
+        if(motionOn){break;} //cancel if motion is recorded
         if (i >= 5)   //for the whole strip, expected the first 5 lights
         {
           for (int x = i - 5; x < i; x++)
@@ -684,9 +678,10 @@ void showleds()
         client.loop(); //check mqtt to provide connection abort
         if (i == NUM_LEDS / 2 + 9)
         {
-          alreadyON = false;
+          
         }
       }
+      alreadyON = false;
       DEBUG_MSG("Motion disabled light\n");
     } //else if(!motionOn && !stateOn){
       // FastLED.clear();
@@ -2101,7 +2096,7 @@ void motionCheck()
   //check for motion
   motionState = digitalRead(PIR_PIN);
   //change motionOn if autoMode is on and it's dark or motionOn is true
-  if ((autoMode && (lightState == 1)) || motionOn)
+  if ((autoMode && ldrCheck()) || motionOn)
   {
     if (motionState == 1 && !buttonPressed)
     {
@@ -2124,13 +2119,14 @@ void motionCheck()
 }
 
 /********************************** LDR check ***********************************************/
-void ldrCheck()
+bool ldrCheck()
 {
   //Serial.println("LDRcheck");
   DEBUG_MSG("LDR check\n");
   //check for light
-  lightState = digitalRead(LDR_PIN) && extLDR;
+  bool lightState = digitalRead(LDR_PIN) && extLDR; //0 = no light, 1 = light
   yield();
+  return lightState;
 }
 
 /********************************** load from Config ***********************************************/

@@ -101,8 +101,7 @@ float heatIndex = 0;
 //state of PIR
 int motionState = 0; //0 = no motion, 1 = motion
 
-//state ldr
-int lightState = 0;//0 = no light, 1 = light
+//state external ldr
 bool extLDR = 1; //bool if external LDR is triggerrt
 
 //Button pressed
