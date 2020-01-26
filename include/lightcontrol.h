@@ -6,6 +6,7 @@
 #include <WiFiUdp.h>
 #include <Arduino.h>
 #include <ArduinoOTA.h>
+#include "credentials.h"
 
 //LED library
 #include <WS2812FX.h>
@@ -69,13 +70,6 @@
 */
 WS2812FX ws2812fx = WS2812FX(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-/************ WIFI and MQTT Information (CHANGE THESE FOR YOUR SETUP) ******************/
-const char* ssid = "YOUR_SSID"; //type your WIFI information inside the quotes
-const char* password = "**********";
-const char* mqtt_server =  "openhabianpi.local";
-const char* mqtt_username = "openhabian";
-const char* mqtt_password = "*******";
-const int mqtt_port = 1883;
 
 /**************************** FOR OTA **************************************************/
 #define SENSORNAME "LEDControl" //change this to whatever you want to call your device
@@ -203,7 +197,7 @@ void buttonCheck();
 //void sendButtonState() ;
 void gettemperature();
 void motionCheck();
-void ldrCheck() ;
+bool ldrCheck() ;
 bool loadConfig();
 bool saveConfig();
 void sendToMqtt(String path, bool val, const char* destinationTopic);
